@@ -17,6 +17,7 @@ import TasksPage from "./pages/TasksPage";
 import TimerPage from "./pages/TimerPage";
 import BookmarksPage from "./pages/BookmarksPage";
 import NotesPage from "./pages/NotesPage";
+import NoteEditorPage from "./pages/NoteEditorPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
@@ -66,6 +67,8 @@ const App = () => {
                 <Route path="timer" element={<TimerPage />} />
                 <Route path="bookmarks" element={<BookmarksPage />} />
                 <Route path="notes" element={<NotesPage />} />
+                <Route path="notes/edit/:id" element={<NoteEditorPage />} />
+                <Route path="notes/new" element={<NoteEditorPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import { Plus, Search, Pin, Edit, Trash2, Eye, Edit3 } from 'lucide-react';
+import { Plus, Search, Pin, Edit, Trash2, Edit3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { NoteEditor } from '@/components/notes/NoteEditor';
 import { NoteDeleteDialog } from '@/components/notes/NoteDeleteDialog';
 import { useNotes, useDeleteNote, useUpdateNote } from '@/hooks/useNotes';
 import { Note } from '@/types';
 
 export default function NotesPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [deletingNote, setDeletingNote] = useState<Note | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: notes = [], isLoading } = useNotes();
   const deleteNote = useDeleteNote();
@@ -78,7 +75,7 @@ export default function NotesPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setEditingNote(note)}
+              onClick={() => navigate(`/notes/edit/${note.id}`)}
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -120,20 +117,10 @@ export default function NotesPage() {
           <p className="text-muted-foreground">Create and organize your thoughts with Markdown support</p>
         </div>
         
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Note
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Create New Note</DialogTitle>
-            </DialogHeader>
-            <NoteEditor onSuccess={() => setIsFormOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate('/notes/new')}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Note
+        </Button>
       </div>
 
       {/* Search */}
@@ -193,34 +180,6 @@ export default function NotesPage() {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Edit Note Full Screen */}
-      {editingNote && (
-        <div className="fixed inset-0 z-50 bg-background overflow-hidden">
-          <div className="h-screen w-screen flex flex-col">
-            <div className="border-b p-3 sm:p-4 lg:p-6 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Edit Note</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="sm:size-default"
-                  onClick={() => setEditingNote(null)}
-                >
-                  <span className="hidden sm:inline">Close</span>
-                  <span className="sm:hidden">✕</span>
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-hidden min-h-0">
-              <NoteEditor
-                note={editingNote}
-                onSuccess={() => setEditingNote(null)}
-              />
-            </div>
-          </div>
         </div>
       )}
 
