@@ -26,8 +26,6 @@ interface AuthState {
   initialize: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
-  signUpWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -47,12 +45,10 @@ const isUserAuthenticated = (session: Session | null): boolean => {
     return false;
   }
   
-  const isGoogleProvider = session.user.app_metadata?.provider === 'google';
   const isEmailConfirmed = !!session.user.email_confirmed_at;
 
-  // Google users are considered authenticated immediately.
-  // Others must confirm their email.
-  return isGoogleProvider || isEmailConfirmed;
+  // Users must confirm their email to be authenticated
+  return isEmailConfirmed;
 };
 
 /**
@@ -183,32 +179,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Initiates the Google OAuth flow.
-   */
-  signInWithGoogle: async () => {
-    set({ loading: true });
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-      if (error) throw error;
-      // The user will be redirected to Google, and then back to the app.
-      // onAuthStateChange will handle the session.
-      return { error: null };
-    } catch (error: any) {
-      set({ loading: false });
-      return { error };
-    }
-  },
-
-  /**
    * Signs out the current user.
    */
   signOut: async () => {
@@ -257,13 +227,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: any) {
       return { error };
     }
-  },
-
-  /**
-   * Signs up with Google (alias for signInWithGoogle).
-   */
-  signUpWithGoogle: async () => {
-    return get().signInWithGoogle();
   },
 
   /**
