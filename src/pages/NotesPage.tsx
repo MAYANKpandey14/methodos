@@ -200,18 +200,21 @@ export default function NotesPage() {
       {editingNote && (
         <div className="fixed inset-0 z-50 bg-background">
           <div className="h-full flex flex-col">
-            <div className="border-b p-4">
+            <div className="border-b p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Edit Note</h2>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Edit Note</h2>
                 <Button
                   variant="outline"
+                  size="sm"
+                  className="sm:size-default"
                   onClick={() => setEditingNote(null)}
                 >
-                  Close
+                  <span className="hidden sm:inline">Close</span>
+                  <span className="sm:hidden">✕</span>
                 </Button>
               </div>
             </div>
-            <div className="flex-1 p-4 overflow-hidden">
+            <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-hidden">
               <NoteEditor
                 note={editingNote}
                 onSuccess={() => setEditingNote(null)}
