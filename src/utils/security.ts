@@ -41,8 +41,8 @@ export const validateTaskTitle = (title: string): { isValid: boolean; error?: st
 };
 
 export const validateTaskDescription = (description: string): { isValid: boolean; error?: string } => {
-  if (description && description.length > 2000) {
-    return { isValid: false, error: 'Description must be 2000 characters or less' };
+  if (description && description.length > 50000) {
+    return { isValid: false, error: 'Description must be 50,000 characters or less' };
   }
   
   return { isValid: true };
@@ -81,7 +81,35 @@ export const validateUrl = (url: string, allowedDomains?: string[]): boolean => 
         hostname.startsWith('192.168.') ||
         hostname.startsWith('10.') ||
         hostname.startsWith('172.16.') ||
-        hostname.startsWith('169.254.')) {
+        hostname.startsWith('172.17.') ||
+        hostname.startsWith('172.18.') ||
+        hostname.startsWith('172.19.') ||
+        hostname.startsWith('172.20.') ||
+        hostname.startsWith('172.21.') ||
+        hostname.startsWith('172.22.') ||
+        hostname.startsWith('172.23.') ||
+        hostname.startsWith('172.24.') ||
+        hostname.startsWith('172.25.') ||
+        hostname.startsWith('172.26.') ||
+        hostname.startsWith('172.27.') ||
+        hostname.startsWith('172.28.') ||
+        hostname.startsWith('172.29.') ||
+        hostname.startsWith('172.30.') ||
+        hostname.startsWith('172.31.') ||
+        hostname.startsWith('169.254.') ||
+        hostname.startsWith('fe80:') ||
+        hostname === '::1') {
+      return false;
+    }
+    
+    // Block file:// and other dangerous protocols
+    const dangerousProtocols = ['file:', 'ftp:', 'javascript:', 'data:', 'vbscript:'];
+    if (dangerousProtocols.some(protocol => url.toLowerCase().includes(protocol))) {
+      return false;
+    }
+    
+    // Validate URL length
+    if (url.length > 2048) {
       return false;
     }
     

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Bookmark } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { validateUrl, sanitizeInput } from '@/utils/security';
 
 export const useBookmarks = () => {
   const { toast } = useToast();
@@ -36,14 +37,24 @@ export const useCreateBookmark = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Validate URL
+      if (!validateUrl(bookmark.url)) {
+        throw new Error('Invalid or dangerous URL provided');
+      }
+      
+      // Sanitize inputs
+      const sanitizedBookmark = {
+        title: sanitizeInput(bookmark.title, 200),
+        url: bookmark.url, // URL is already validated
+        description: bookmark.description ? sanitizeInput(bookmark.description, 1000) : undefined,
+        tags: bookmark.tags?.map(tag => sanitizeInput(tag, 50)).slice(0, 10) || [],
+      };
+
       const { data, error } = await supabase
         .from('bookmarks')
         .insert({
           user_id: user.id,
-          title: bookmark.title,
-          url: bookmark.url,
-          description: bookmark.description,
-          tags: bookmark.tags,
+          ...sanitizedBookmark,
         })
         .select()
         .single();
@@ -74,14 +85,22 @@ export const useUpdateBookmark = () => {
   
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Bookmark> & { id: string }) => {
+      // Validate URL if provided
+      if (updates.url && !validateUrl(updates.url)) {
+        throw new Error('Invalid or dangerous URL provided');
+      }
+      
+      // Sanitize inputs
+      const sanitizedUpdates = {
+        title: updates.title ? sanitizeInput(updates.title, 200) : undefined,
+        url: updates.url, // URL is already validated
+        description: updates.description ? sanitizeInput(updates.description, 1000) : undefined,
+        tags: updates.tags?.map(tag => sanitizeInput(tag, 50)).slice(0, 10),
+      };
+      
       const { data, error } = await supabase
         .from('bookmarks')
-        .update({
-          title: updates.title,
-          url: updates.url,
-          description: updates.description,
-          tags: updates.tags,
-        })
+        .update(sanitizedUpdates)
         .eq('id', id)
         .select()
         .single();

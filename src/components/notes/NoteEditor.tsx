@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,10 +14,11 @@ import { Eye, Edit3, Pin } from 'lucide-react';
 import { useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Note } from '@/types';
+import { validateTaskTitle, validateTaskDescription } from '@/utils/security';
 
 const noteSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  content: z.string(),
+  title: z.string().min(1, 'Title is required').max(200, 'Title must be 200 characters or less'),
+  content: z.string().max(50000, 'Content must be 50,000 characters or less'),
   isPinned: z.boolean().default(false),
 });
 
@@ -61,9 +64,21 @@ export function NoteEditor({ note, onSuccess }: NoteEditorProps) {
   }, [debouncedContent, note, updateNote]);
 
   const onSubmit = async (data: NoteFormData) => {
+    // Validate input length and content
+    const titleValidation = validateTaskTitle(data.title);
+    const contentValidation = validateTaskDescription(data.content);
+    
+    if (!titleValidation.isValid) {
+      throw new Error(titleValidation.error);
+    }
+    
+    if (!contentValidation.isValid) {
+      throw new Error(contentValidation.error);
+    }
+    
     const noteData = {
-      title: data.title,
-      content: data.content,
+      title: data.title.trim(),
+      content: data.content.trim(),
       isPinned: data.isPinned,
     };
 
@@ -76,16 +91,29 @@ export function NoteEditor({ note, onSuccess }: NoteEditorProps) {
     onSuccess();
   };
 
-  // Simple markdown renderer
+  // Secure markdown renderer with sanitization
   const renderMarkdown = (text: string) => {
-    return text
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*)\*/gim, '<em>$1</em>')
-      .replace(/`(.*)`/gim, '<code>$1</code>')
-      .replace(/\n/gim, '<br>');
+    try {
+      // Configure marked options
+      marked.setOptions({
+        gfm: true,
+        breaks: true,
+      });
+      
+      const rawHtml = marked.parse(text) as string;
+      
+      // Sanitize HTML with DOMPurify
+      const cleanHtml = DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'blockquote'],
+        ALLOWED_ATTR: [],
+        ALLOW_DATA_ATTR: false,
+      });
+      
+      return cleanHtml;
+    } catch (error) {
+      console.error('Markdown rendering error:', error);
+      return DOMPurify.sanitize(text.replace(/\n/g, '<br>'));
+    }
   };
 
   return (

@@ -10,11 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { useCreateBookmark, useUpdateBookmark } from '@/hooks/useBookmarks';
 import { Bookmark } from '@/types';
+import { validateUrl, validateTagName } from '@/utils/security';
 
 const bookmarkSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  url: z.string().url('Please enter a valid URL'),
-  description: z.string().optional(),
+  title: z.string().min(1, 'Title is required').max(200, 'Title must be 200 characters or less'),
+  url: z.string().url('Please enter a valid URL').refine((url) => validateUrl(url), {
+    message: 'URL is not allowed or contains invalid protocol'
+  }),
+  description: z.string().max(1000, 'Description must be 1000 characters or less').optional(),
 });
 
 type BookmarkFormData = z.infer<typeof bookmarkSchema>;
@@ -45,34 +48,21 @@ export function BookmarkForm({ bookmark, onSuccess }: BookmarkFormProps) {
     },
   });
 
-  // Auto-fetch title from URL
-  const fetchPageTitle = async (url: string) => {
-    try {
-      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      const data = await response.json();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.contents, 'text/html');
-      const title = doc.querySelector('title')?.textContent;
-      if (title && !bookmark) {
-        setValue('title', title.trim());
-      }
-    } catch (error) {
-      // Silently fail - user can manually enter title
-    }
-  };
-
-  const handleUrlBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    if (url && !bookmark) {
-      fetchPageTitle(url);
-    }
-  };
+  // Removed insecure external API call for auto-fetching titles
+  // Users can manually enter titles for better security
 
   const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
       const newTag = tagInput.trim().toLowerCase();
-      if (!tags.includes(newTag)) {
+      
+      // Validate tag name
+      const tagValidation = validateTagName(newTag);
+      if (!tagValidation.isValid) {
+        return; // Skip invalid tags
+      }
+      
+      if (!tags.includes(newTag) && tags.length < 10) {
         setTags([...tags, newTag]);
       }
       setTagInput('');
@@ -109,7 +99,6 @@ export function BookmarkForm({ bookmark, onSuccess }: BookmarkFormProps) {
           type="url"
           placeholder="https://example.com"
           {...register('url')}
-          onBlur={handleUrlBlur}
         />
         {errors.url && (
           <p className="text-sm text-destructive mt-1">{errors.url.message}</p>
