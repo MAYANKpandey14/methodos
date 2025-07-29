@@ -86,20 +86,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * This should be called once when the application mounts.
    */
   initialize: () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const isAuthenticated = isUserAuthenticated(session);
-      set({ 
-        user: session?.user ?? null, 
-        session, 
-        isAuthenticated,
-        loading: false 
-      });
-      if (isAuthenticated) {
-        get()._loadProfile();
-      }
-    });
+    let isInitialized = false;
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const isAuthenticated = isUserAuthenticated(session);
       
       set({ 
@@ -109,17 +99,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false 
       });
 
-      if (event === 'SIGNED_IN' && isAuthenticated) {
+      // Only handle sign-in logic if this is a new sign-in event, not initialization
+      if (event === 'SIGNED_IN' && isAuthenticated && isInitialized) {
         console.log('🔑 User signed in successfully');
         // Defer profile handling to avoid potential deadlocks
         setTimeout(() => {
           get()._handleSignIn();
-        }, 0);
+        }, 100);
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         set({ profile: null });
       }
     });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const isAuthenticated = isUserAuthenticated(session);
+      set({ 
+        user: session?.user ?? null, 
+        session, 
+        isAuthenticated,
+        loading: false 
+      });
+      
+      // If already authenticated on init, load profile without triggering sign-in flow
+      if (isAuthenticated) {
+        get()._loadProfile();
+      }
+      
+      isInitialized = true;
+    });
+
+    // Store the subscription for cleanup if needed
+    return subscription;
   },
 
   /**
@@ -379,5 +391,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
-// Initialize the store once in your app's entry point (e.g., App.tsx or main.tsx)
-useAuthStore.getState().initialize();
+// Initialize the store once - prevent multiple initializations
+let isStoreInitialized = false;
+if (!isStoreInitialized) {
+  isStoreInitialized = true;
+  useAuthStore.getState().initialize();
+}
