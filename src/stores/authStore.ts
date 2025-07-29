@@ -74,7 +74,12 @@ const isValidEmail = (email: string): boolean => {
     return emailRegex.test(email) && email.length <= 254;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, get) => {
+  let isInitialized = false;
+  let isHandlingSignIn = false;
+  let lastHandledUserId: string | null = null;
+
+  return {
   user: null,
   profile: null,
   session: null,
@@ -86,7 +91,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * This should be called once when the application mounts.
    */
   initialize: () => {
-    let isInitialized = false;
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -100,15 +104,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       // Only handle sign-in logic if this is a new sign-in event, not initialization
-      if (event === 'SIGNED_IN' && isAuthenticated && isInitialized) {
-        console.log('🔑 User signed in successfully');
-        // Defer profile handling to avoid potential deadlocks
-        setTimeout(() => {
-          get()._handleSignIn();
-        }, 100);
+      if (event === 'SIGNED_IN' && isAuthenticated && isInitialized && session?.user) {
+        // Prevent multiple concurrent sign-in handling for the same user
+        if (!isHandlingSignIn && lastHandledUserId !== session.user.id) {
+          console.log('🔑 User signed in successfully');
+          lastHandledUserId = session.user.id;
+          isHandlingSignIn = true;
+          
+          // Defer profile handling to avoid potential deadlocks
+          setTimeout(() => {
+            get()._handleSignIn().finally(() => {
+              isHandlingSignIn = false;
+            });
+          }, 100);
+        }
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         set({ profile: null });
+        // Reset guards on sign out
+        lastHandledUserId = null;
+        isHandlingSignIn = false;
       }
     });
 
@@ -389,7 +404,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('❌ Error handling sign-in:', error);
     }
   },
-}));
+}});
 
 // Initialize the store once - prevent multiple initializations
 let isStoreInitialized = false;
