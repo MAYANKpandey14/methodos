@@ -198,9 +198,9 @@ export default function NotesPage() {
 
       {/* Edit Note Full Screen */}
       {editingNote && (
-        <div className="fixed inset-0 z-50 bg-background">
-          <div className="h-full flex flex-col">
-            <div className="border-b p-3 sm:p-4 lg:p-6">
+        <div className="fixed inset-0 z-50 bg-background overflow-hidden">
+          <div className="h-screen w-screen flex flex-col">
+            <div className="border-b p-3 sm:p-4 lg:p-6 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Edit Note</h2>
                 <Button
@@ -214,7 +214,7 @@ export default function NotesPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-hidden">
+            <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-hidden min-h-0">
               <NoteEditor
                 note={editingNote}
                 onSuccess={() => setEditingNote(null)}
