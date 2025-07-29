@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/ThemeToggle';
+import { sanitizeInput } from '@/utils/security';
 
 // Security: Whitelist of allowed redirect URLs after password reset
 const ALLOWED_REDIRECT_URLS = [
@@ -14,11 +15,6 @@ const ALLOWED_REDIRECT_URLS = [
   `${window.location.origin}/login`,
   `${window.location.origin}/dashboard`
 ];
-
-const sanitizeInput = (input: string): string => {
-  // Remove potentially dangerous characters and limit length
-  return input.replace(/[<>\"'&]/g, '').substring(0, 100);
-};
 
 const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -102,8 +98,8 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     
     // Security: Input validation and sanitization
-    const sanitizedPassword = sanitizeInput(password);
-    const sanitizedConfirmPassword = sanitizeInput(confirmPassword);
+    const sanitizedPassword = sanitizeInput(password, 100);
+    const sanitizedConfirmPassword = sanitizeInput(confirmPassword, 100);
     
     if (sanitizedPassword !== sanitizedConfirmPassword) {
       toast({

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/ThemeToggle';
+import { sanitizeInput, validateEmail } from '@/utils/security';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
@@ -23,7 +24,23 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
+    // Security: Input validation and sanitization
+    const sanitizedEmail = sanitizeInput(email, 254);
+    const sanitizedPassword = sanitizeInput(password, 100);
+    const sanitizedConfirmPassword = sanitizeInput(confirmPassword, 100);
+    const sanitizedFullName = sanitizeInput(fullName, 100);
+    
+    // Validate email format
+    if (!validateEmail(sanitizedEmail)) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (sanitizedPassword !== sanitizedConfirmPassword) {
       toast({
         title: 'Error',
         description: 'Passwords do not match.',
@@ -32,16 +49,40 @@ const RegisterPage = () => {
       return;
     }
 
-    if (password.length < 6) {
+    // Enhanced password validation to match security requirements
+    const passwordValidation = {
+      isValid: true,
+      errors: [] as string[]
+    };
+    
+    if (sanitizedPassword.length < 8) {
+      passwordValidation.errors.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(sanitizedPassword)) {
+      passwordValidation.errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(sanitizedPassword)) {
+      passwordValidation.errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(sanitizedPassword)) {
+      passwordValidation.errors.push('Password must contain at least one number');
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(sanitizedPassword)) {
+      passwordValidation.errors.push('Password must contain at least one special character');
+    }
+    
+    passwordValidation.isValid = passwordValidation.errors.length === 0;
+    
+    if (!passwordValidation.isValid) {
       toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters long.',
+        title: 'Password Requirements Not Met',
+        description: passwordValidation.errors.join(' '),
         variant: 'destructive',
       });
       return;
     }
 
-    const result = await signUp(email, password, fullName);
+    const result = await signUp(sanitizedEmail, sanitizedPassword, sanitizedFullName);
     
     if (result.error) {
       toast({
@@ -51,8 +92,8 @@ const RegisterPage = () => {
       });
     } else {
       // Store email for verification page and redirect
-      localStorage.setItem('pendingVerificationEmail', email);
-      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      localStorage.setItem('pendingVerificationEmail', sanitizedEmail);
+      navigate(`/verify-email?email=${encodeURIComponent(sanitizedEmail)}`);
       toast({
         title: 'Account created!',
         description: 'Please check your email to verify your account.',
@@ -120,7 +161,8 @@ const RegisterPage = () => {
                   required
                   className="mt-1"
                   placeholder="Enter your password"
-                  minLength={6}
+                  minLength={8}
+                  maxLength={100}
                 />
                 <PasswordStrength password={password} className="mt-2" />
               </div>
@@ -133,7 +175,8 @@ const RegisterPage = () => {
                   required
                   className="mt-1"
                   placeholder="Confirm your password"
-                  minLength={6}
+                  minLength={8}
+                  maxLength={100}
                 />
                 <PasswordStrength password={confirmPassword} className="mt-2" />
               </div>
