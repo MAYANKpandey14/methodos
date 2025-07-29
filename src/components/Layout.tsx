@@ -219,17 +219,17 @@ const Layout = () => {
               />
               <div className="text-lg font-bold text-foreground">FocusFlow</div>
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out hover:scale-110">
-                  <Link to="/settings">
-                  <AvatarImage
-                    src={getAvatarUrl() || undefined}
-                    alt={`${profile?.display_name || 'User'}'s profile picture`}
-                  />
+                <Link to="/settings">
+                  <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out hover:scale-110">
+                    <AvatarImage
+                      src={getAvatarUrl() || undefined}
+                      alt={`${profile?.display_name || 'User'}'s profile picture`}
+                    />
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
                       {initials}
                     </AvatarFallback>
-                    </Link>
-                </Avatar>
+                  </Avatar>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
