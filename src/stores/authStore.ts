@@ -26,7 +26,8 @@ interface AuthState {
   initialize: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
-  continueWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signUpWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -74,12 +75,7 @@ const isValidEmail = (email: string): boolean => {
     return emailRegex.test(email) && email.length <= 254;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => {
-  let isInitialized = false;
-  let isHandlingSignIn = false;
-  let lastHandledUserId: string | null = null;
-
-  return {
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   session: null,
@@ -91,43 +87,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
    * This should be called once when the application mounts.
    */
   initialize: () => {
-
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const isAuthenticated = isUserAuthenticated(session);
-      
-      set({ 
-        user: session?.user ?? null, 
-        session, 
-        isAuthenticated,
-        loading: false 
-      });
-
-      // Only handle sign-in logic if this is a new sign-in event, not initialization
-      if (event === 'SIGNED_IN' && isAuthenticated && isInitialized && session?.user) {
-        // Prevent multiple concurrent sign-in handling for the same user
-        if (!isHandlingSignIn && lastHandledUserId !== session.user.id) {
-          console.log('🔑 User signed in successfully');
-          lastHandledUserId = session.user.id;
-          isHandlingSignIn = true;
-          
-          // Defer profile handling to avoid potential deadlocks
-          setTimeout(() => {
-            get()._handleSignIn().finally(() => {
-              isHandlingSignIn = false;
-            });
-          }, 100);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
-        set({ profile: null });
-        // Reset guards on sign out
-        lastHandledUserId = null;
-        isHandlingSignIn = false;
-      }
-    });
-
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const isAuthenticated = isUserAuthenticated(session);
       set({ 
@@ -136,17 +95,27 @@ export const useAuthStore = create<AuthState>((set, get) => {
         isAuthenticated,
         loading: false 
       });
-      
-      // If already authenticated on init, load profile without triggering sign-in flow
       if (isAuthenticated) {
         get()._loadProfile();
       }
-      
-      isInitialized = true;
     });
 
-    // Store the subscription for cleanup if needed
-    return subscription;
+    supabase.auth.onAuthStateChange((event, session) => {
+      const isAuthenticated = isUserAuthenticated(session);
+      
+      set({ 
+        user: session?.user ?? null, 
+        session, 
+        isAuthenticated,
+        loading: false 
+      });
+
+      if (event === 'SIGNED_IN' && isAuthenticated) {
+        get()._handleSignIn();
+      } else if (event === 'SIGNED_OUT') {
+        set({ profile: null });
+      }
+    });
   },
 
   /**
@@ -214,36 +183,26 @@ export const useAuthStore = create<AuthState>((set, get) => {
   },
 
   /**
-   * Initiates the Google OAuth flow for both sign-in and sign-up.
-   * Handles both new and existing users automatically.
+   * Initiates the Google OAuth flow.
    */
-  continueWithGoogle: async () => {
-    console.log('🚀 Initiating Google OAuth flow');
+  signInWithGoogle: async () => {
     set({ loading: true });
-    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: window.location.origin,
           queryParams: {
             access_type: 'offline',
-            prompt: 'select_account',
+            prompt: 'consent',
           },
         },
       });
-      
-      if (error) {
-        console.error('❌ Google OAuth error:', error.message);
-        throw error;
-      }
-      
-      console.log('✅ Google OAuth initiated successfully');
-      // User will be redirected to Google, then back to app
-      // onAuthStateChange will handle the session
+      if (error) throw error;
+      // The user will be redirected to Google, and then back to the app.
+      // onAuthStateChange will handle the session.
       return { error: null };
     } catch (error: any) {
-      console.error('❌ Google OAuth failed:', error);
       set({ loading: false });
       return { error };
     }
@@ -300,6 +259,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
     }
   },
 
+  /**
+   * Signs up with Google (alias for signInWithGoogle).
+   */
+  signUpWithGoogle: async () => {
+    return get().signInWithGoogle();
+  },
 
   /**
    * Loads the user's profile from the database.
@@ -353,62 +318,37 @@ export const useAuthStore = create<AuthState>((set, get) => {
     const { user } = get();
     if (!user) return;
 
-    console.log('👤 Handling user sign-in for:', user.email);
-    const isGoogleUser = user.app_metadata?.provider === 'google';
-
     try {
-      // Check if a profile already exists
+      // Check if a profile already exists.
       const { data: existingProfile, error: selectError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', user.id)
         .single();
 
-      // If there's an error and it's not "No rows found", something went wrong
+      // If there's an error and it's not "No rows found", something went wrong.
       if (selectError && selectError.code !== 'PGRST116') {
         throw selectError;
       }
 
-      // If no profile exists, create one
+      // If no profile exists, create one.
       if (!existingProfile) {
-        const displayName = isGoogleUser 
-          ? (user.user_metadata.full_name || user.user_metadata.name || user.email?.split('@')[0])
-          : (user.user_metadata.display_name || user.email?.split('@')[0]);
-          
-        const avatarUrl = isGoogleUser 
-          ? (user.user_metadata.avatar_url || user.user_metadata.picture)
-          : user.user_metadata.avatar_url;
-
-        console.log('📝 Creating new profile for user:', displayName);
-        
         const { error: upsertError } = await supabase.from('profiles').upsert({
           id: user.id,
-          display_name: displayName,
-          avatar_url: avatarUrl,
+          display_name: user.user_metadata.full_name || user.email?.split('@')[0],
+          avatar_url: user.user_metadata.avatar_url,
         });
-        
         if (upsertError) throw upsertError;
-        console.log('✅ Profile created successfully');
-      } else {
-        console.log('👤 Existing profile found');
       }
       
-      // Load the profile into the store
-      await get()._loadProfile();
-      
-      // No need to redirect for Google users - they're already where they should be
-      // The routing will handle showing the correct page based on auth state
-      console.log('✅ Google user authentication completed successfully');
+      // Finally, load the profile into the store.
+      get()._loadProfile();
 
     } catch (error) {
-      console.error('❌ Error handling sign-in:', error);
+        console.error('Error handling sign-in:', error);
     }
   },
-}});
+}));
 
-// Initialize the store once - prevent multiple initializations
-let isStoreInitialized = false;
-if (!isStoreInitialized) {
-  isStoreInitialized = true;
-  useAuthStore.getState().initialize();
-}
+// Initialize the store once in your app's entry point (e.g., App.tsx or main.tsx)
+useAuthStore.getState().initialize();

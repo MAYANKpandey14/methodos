@@ -17,7 +17,7 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signUp, continueWithGoogle, loading } = useAuthStore();
+  const { signUp, signUpWithGoogle, loading } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -102,18 +102,15 @@ const RegisterPage = () => {
   };
 
   const handleGoogleSignUp = async () => {
-    console.log('🎯 User clicked Continue with Google from register page');
-    const { error } = await continueWithGoogle();
+    const { error } = await signUpWithGoogle();
     
     if (error) {
-      console.error('❌ Google continue failed:', error);
       toast({
-        title: 'Google Sign Up Failed',
-        description: error.message || 'Failed to continue with Google. Please try again.',
+        title: 'Error',
+        description: error.message || 'Failed to sign up with Google. Please try again.',
         variant: 'destructive',
       });
     }
-    // Success case is handled by redirect, no need for success toast
   };
 
   return (
@@ -195,7 +192,7 @@ const RegisterPage = () => {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or
+                    Or continue with
                   </span>
                 </div>
               </div>
@@ -225,7 +222,7 @@ const RegisterPage = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                {loading ? 'Continuing...' : 'Continue with Google'}
+                {loading ? 'Creating account...' : 'Sign up with Google'}
               </Button>
             </div>
             <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
