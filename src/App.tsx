@@ -15,6 +15,8 @@ import EmailVerificationPage from "./pages/EmailVerificationPage";
 import DashboardPage from "./pages/DashboardPage";
 import TasksPage from "./pages/TasksPage";
 import TimerPage from "./pages/TimerPage";
+import BookmarksPage from "./pages/BookmarksPage";
+import NotesPage from "./pages/NotesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
@@ -62,6 +64,8 @@ const App = () => {
                 <Route index element={<DashboardPage />} />
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="timer" element={<TimerPage />} />
+                <Route path="bookmarks" element={<BookmarksPage />} />
+                <Route path="notes" element={<NotesPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

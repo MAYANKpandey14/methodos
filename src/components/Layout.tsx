@@ -12,7 +12,9 @@ import {
   Clock,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  Bookmark,
+  StickyNote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +33,10 @@ const Layout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Timer', href: '/timer', icon: Clock },
+    { name: 'Bookmarks', href: '/bookmarks', icon: Bookmark },
+    { name: 'Notes', href: '/notes', icon: StickyNote },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
