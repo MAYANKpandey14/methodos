@@ -196,19 +196,29 @@ export default function NotesPage() {
         </div>
       )}
 
-      {/* Edit Dialog */}
+      {/* Edit Note Full Screen */}
       {editingNote && (
-        <Dialog open={true} onOpenChange={() => setEditingNote(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Edit Note</DialogTitle>
-            </DialogHeader>
-            <NoteEditor
-              note={editingNote}
-              onSuccess={() => setEditingNote(null)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full flex flex-col">
+            <div className="border-b p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Edit Note</h2>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingNote(null)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 p-4 overflow-hidden">
+              <NoteEditor
+                note={editingNote}
+                onSuccess={() => setEditingNote(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Dialog */}
