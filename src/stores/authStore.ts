@@ -369,11 +369,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Load the profile into the store
       await get()._loadProfile();
       
-      // For Google users, redirect to home page
-      if (isGoogleUser) {
-        console.log('🏠 Redirecting Google user to home page');
-        window.location.href = '/';
-      }
+      // No need to redirect for Google users - they're already where they should be
+      // The routing will handle showing the correct page based on auth state
+      console.log('✅ Google user authentication completed successfully');
 
     } catch (error) {
       console.error('❌ Error handling sign-in:', error);
