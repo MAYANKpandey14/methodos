@@ -163,19 +163,18 @@ const Layout = () => {
 
             {/* Desktop User Profile */}
             <div className="sticky bottom-0 w-full p-4 border-t bg-card mt-auto">
-              <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-all duration-200 ease-in-out group">
-               <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out hover:scale-110">
-                  <Link to="/settings">
+            <Link to="/settings" className="block">
+              <div className="flex items-center space-x-2 sm:space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-all duration-200 ease-in-out group cursor-pointer">
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 transition-transform duration-200 ease-in-out group-hover:scale-110">
                   <AvatarImage
                     src={getAvatarUrl() || undefined}
                     alt={`${profile?.display_name || 'User'}'s profile picture`}
                   />
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {initials}
-                    </AvatarFallback>
-                    </Link>
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 hidden sm:block">
                   <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">
                     {profile?.display_name || user?.email}
                   </p>
@@ -183,19 +182,20 @@ const Layout = () => {
                     {user?.email}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogoutClick}
-                  className={cn(
-                    'text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ease-in-out hover:scale-110 hover:shadow-sm',
-                    getFocusRing()
-                  )}
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
               </div>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogoutClick}
+              className={cn(
+                'text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ease-in-out hover:scale-110 hover:shadow-sm flex-shrink-0',
+                getFocusRing()
+              )}
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
             </div>
           </div>
         )}
