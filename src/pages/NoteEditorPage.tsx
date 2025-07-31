@@ -123,7 +123,6 @@ export default function NoteEditorPage() {
   };
 
   const formatSelection = (format: string) => {
-    // This would be enhanced to work with text selection
     switch (format) {
       case 'bold':
         insertMarkdown('**bold text**');
@@ -131,20 +130,47 @@ export default function NoteEditorPage() {
       case 'italic':
         insertMarkdown('*italic text*');
         break;
-      case 'heading':
-        insertMarkdown('\n# Heading\n');
-        break;
-      case 'link':
-        insertMarkdown('[link text](url)');
+      case 'strikethrough':
+        insertMarkdown('~~strikethrough text~~');
         break;
       case 'code':
-        insertMarkdown('`code`');
+        insertMarkdown('`inline code`');
         break;
-      case 'list':
-        insertMarkdown('\n- List item\n');
+      case 'h1':
+        insertMarkdown('\n# Heading 1\n');
+        break;
+      case 'h2':
+        insertMarkdown('\n## Heading 2\n');
+        break;
+      case 'h3':
+        insertMarkdown('\n### Heading 3\n');
+        break;
+      case 'unordered-list':
+        insertMarkdown('\n- List item\n- Another item\n');
+        break;
+      case 'ordered-list':
+        insertMarkdown('\n1. First item\n2. Second item\n');
+        break;
+      case 'task-list':
+        insertMarkdown('\n- [ ] Task item\n- [x] Completed task\n');
+        break;
+      case 'link':
+        insertMarkdown('[link text](https://example.com)');
+        break;
+      case 'image':
+        insertMarkdown('![alt text](image-url)');
+        break;
+      case 'table':
+        insertMarkdown('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
+        break;
+      case 'code-block':
+        insertMarkdown('\n```\ncode block\n```\n');
         break;
       case 'quote':
-        insertMarkdown('\n> Quote\n');
+        insertMarkdown('\n> This is a quote\n> It can span multiple lines\n');
+        break;
+      case 'hr':
+        insertMarkdown('\n---\n');
         break;
       default:
         break;
