@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useTasks } from '../hooks/useTasks';
+import { useTasks, useUpdateTask } from '../hooks/useTasks';
 import { useCreatePomodoroSession, useUpdatePomodoroSession } from '../hooks/usePomodoro';
 import { useAuthStore } from '../stores/authStore';
 import { usePersistentTimer } from '../hooks/usePersistentTimer';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Play, Pause, Square, RotateCcw, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,10 +18,13 @@ const TimerPage = () => {
   const { data: tasks = [], isLoading: tasksLoading } = useTasks({ status: 'pending' });
   const createSessionMutation = useCreatePomodoroSession();
   const updateSessionMutation = useUpdatePomodoroSession();
+  const updateTaskMutation = useUpdateTask();
   const { toast } = useToast();
 
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [showTaskCompleteDialog, setShowTaskCompleteDialog] = useState(false);
+  const [taskToComplete, setTaskToComplete] = useState<any>(null);
 
   const workDuration = (profile?.pomodoro_duration || 25) * 60;
   
@@ -63,28 +67,49 @@ const TimerPage = () => {
   };
 
   const handleTimerComplete = async () => {
-    if (sessionId) {
+    if (sessionId && selectedTask) {
       try {
+        // Update session status
         await updateSessionMutation.mutateAsync({
           id: sessionId,
           status: 'completed',
           completedAt: new Date()
         });
 
+        // Increment completed pomodoros for the task
+        const newCompletedPomodoros = selectedTask.completedPomodoros + 1;
+        await updateTaskMutation.mutateAsync({
+          id: selectedTask.id,
+          updates: {
+            completedPomodoros: newCompletedPomodoros
+          }
+        });
+
+        // Check if all pomodoros are completed
+        if (newCompletedPomodoros >= selectedTask.estimatedPomodoros) {
+          setTaskToComplete({ ...selectedTask, completedPomodoros: newCompletedPomodoros });
+          setShowTaskCompleteDialog(true);
+        }
+
         // Show notification
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Pomodoro Complete!', {
-            body: 'Time for a break! Great work on your focus session.',
+            body: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed for "${selectedTask.title}"`,
             icon: '/favicon.ico',
           });
         }
 
         toast({
           title: 'Pomodoro completed!',
-          description: 'Great work! Time for a well-deserved break.',
+          description: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed for "${selectedTask.title}"`,
         });
       } catch (error: any) {
         console.error('Failed to update session:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to update pomodoro progress.',
+          variant: 'destructive',
+        });
       }
     }
   };
@@ -130,17 +155,33 @@ const TimerPage = () => {
   };
 
   const handleComplete = async () => {
-    if (sessionId) {
+    if (sessionId && selectedTask) {
       try {
+        // Update session status
         await updateSessionMutation.mutateAsync({
           id: sessionId,
           status: 'completed',
           completedAt: new Date()
         });
 
+        // Increment completed pomodoros for the task
+        const newCompletedPomodoros = selectedTask.completedPomodoros + 1;
+        await updateTaskMutation.mutateAsync({
+          id: selectedTask.id,
+          updates: {
+            completedPomodoros: newCompletedPomodoros
+          }
+        });
+
+        // Check if all pomodoros are completed
+        if (newCompletedPomodoros >= selectedTask.estimatedPomodoros) {
+          setTaskToComplete({ ...selectedTask, completedPomodoros: newCompletedPomodoros });
+          setShowTaskCompleteDialog(true);
+        }
+
         toast({
           title: 'Pomodoro completed!',
-          description: 'Great work! Take a well-deserved break.',
+          description: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed for "${selectedTask.title}"`,
         });
       } catch (error: any) {
         toast({
@@ -171,6 +212,61 @@ const TimerPage = () => {
     resetTimer();
     setSelectedTask(null);
     setSelectedTaskId('');
+  };
+
+  const handleMarkTaskComplete = async () => {
+    if (taskToComplete) {
+      try {
+        await updateTaskMutation.mutateAsync({
+          id: taskToComplete.id,
+          updates: {
+            isCompleted: true
+          }
+        });
+        
+        toast({
+          title: 'Task completed!',
+          description: `"${taskToComplete.title}" has been marked as complete.`,
+        });
+        
+        setSelectedTask(null);
+        setSelectedTaskId('');
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: 'Failed to mark task as complete.',
+          variant: 'destructive',
+        });
+      }
+    }
+    setShowTaskCompleteDialog(false);
+    setTaskToComplete(null);
+  };
+
+  const handleAddMorePomodoros = async () => {
+    if (taskToComplete) {
+      try {
+        await updateTaskMutation.mutateAsync({
+          id: taskToComplete.id,
+          updates: {
+            estimatedPomodoros: taskToComplete.estimatedPomodoros + 1
+          }
+        });
+        
+        toast({
+          title: 'Pomodoros updated!',
+          description: `Added 1 more pomodoro to "${taskToComplete.title}".`,
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update pomodoros.',
+          variant: 'destructive',
+        });
+      }
+    }
+    setShowTaskCompleteDialog(false);
+    setTaskToComplete(null);
   };
 
   if (tasksLoading) {
@@ -399,6 +495,27 @@ const TimerPage = () => {
           </ol>
         </CardContent>
       </Card>
+
+      {/* Task Completion Dialog */}
+      <AlertDialog open={showTaskCompleteDialog} onOpenChange={setShowTaskCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>All Pomodoros Completed!</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've completed all {taskToComplete?.estimatedPomodoros} pomodoros for "{taskToComplete?.title}". 
+              Is this task complete, or do you need more pomodoros to finish it?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleAddMorePomodoros}>
+              Add More Pomodoros
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkTaskComplete}>
+              Mark Task Complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
