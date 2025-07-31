@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Download, Printer, Eye, Edit, Split } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,69 +129,108 @@ export default function NoteEditorPage() {
     navigate('/notes');
   };
 
-  const insertMarkdown = (markdown: string) => {
+  const insertMarkdown = useCallback((markdown: string) => {
     setContent(prev => prev + markdown);
-  };
+  }, []);
 
-  const formatSelection = (format: string) => {
-    // The EnhancedNoteEditorTextarea will handle the actual text insertion
-    // through its insertMarkdown method. This acts as a fallback.
-    switch (format) {
+  const formatSelection = useCallback((type: string) => {
+    // Get reference to the textarea through the layout component
+    const textarea = document.querySelector('textarea');
+    if (!textarea) return;
+
+    // Use the enhanced textarea's built-in formatting methods
+    const textareaEnhanced = textarea as any;
+    
+    switch (type) {
       case 'bold':
-        insertMarkdown('**bold text**');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('**', '**', 'bold text');
+        }
         break;
       case 'italic':
-        insertMarkdown('*italic text*');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('*', '*', 'italic text');
+        }
         break;
       case 'underline':
-        insertMarkdown('<u>underlined text</u>');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('<u>', '</u>', 'underlined text');
+        }
         break;
       case 'strikethrough':
-        insertMarkdown('~~strikethrough text~~');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('~~', '~~', 'strikethrough text');
+        }
         break;
       case 'inline-code':
-        insertMarkdown('`inline code`');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('`', '`', 'code');
+        }
         break;
       case 'heading1':
-        insertMarkdown('\n# Heading 1\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('# ', '', 'Heading 1');
+        }
         break;
       case 'heading2':
-        insertMarkdown('\n## Heading 2\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('## ', '', 'Heading 2');
+        }
         break;
       case 'heading3':
-        insertMarkdown('\n### Heading 3\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('### ', '', 'Heading 3');
+        }
         break;
       case 'unordered-list':
-        insertMarkdown('\n- List item\n- Another item\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('- ', '', 'List item');
+        }
         break;
       case 'ordered-list':
-        insertMarkdown('\n1. First item\n2. Second item\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('1. ', '', 'List item');
+        }
         break;
       case 'task-list':
-        insertMarkdown('\n- [ ] Task item\n- [x] Completed task\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('- [ ] ', '', 'Task item');
+        }
         break;
       case 'blockquote':
-        insertMarkdown('\n> This is a quote\n> It can span multiple lines\n');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('> ', '', 'Quote text');
+        }
         break;
       case 'link':
-        insertMarkdown('[link text](https://example.com)');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('[', '](https://example.com)', 'link text');
+        }
         break;
       case 'image':
-        insertMarkdown('![alt text](image-url)');
+        if (textareaEnhanced.insertMarkdown) {
+          textareaEnhanced.insertMarkdown('![', '](image-url)', 'alt text');
+        }
         break;
       case 'table':
-        insertMarkdown('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
+        if (textareaEnhanced.insertText) {
+          textareaEnhanced.insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
+        }
         break;
       case 'code-block':
-        insertMarkdown('\n```javascript\n// Your code here\nconsole.log("Hello World!");\n```\n');
+        if (textareaEnhanced.insertText) {
+          textareaEnhanced.insertText('\n```javascript\n// Your code here\nconsole.log("Hello World!");\n```\n');
+        }
         break;
       case 'horizontal-rule':
-        insertMarkdown('\n---\n');
+        if (textareaEnhanced.insertText) {
+          textareaEnhanced.insertText('\n---\n');
+        }
         break;
       default:
         break;
     }
-  };
+  }, []);
 
   // Character and word count
   const charCount = content.length;

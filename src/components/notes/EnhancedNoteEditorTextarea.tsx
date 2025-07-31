@@ -25,9 +25,9 @@ export function EnhancedNoteEditorTextarea({
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    // Keyboard shortcuts
+    // Only handle keyboard shortcuts with Ctrl/Cmd - avoid interfering with normal typing
     if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
+      switch (e.key.toLowerCase()) {
         case 'b':
           e.preventDefault();
           insertMarkdownAtSelection('**', '**', 'bold text');
@@ -45,44 +45,48 @@ export function EnhancedNoteEditorTextarea({
           insertMarkdownAtSelection('`', '`', 'code');
           break;
       }
-    }
-
-    // Auto-closing brackets and quotes
-    const { selectionStart, selectionEnd } = textarea;
-    if (selectionStart === selectionEnd) {
-      switch (e.key) {
-        case '(':
-          e.preventDefault();
-          insertText('()');
-          textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
-          break;
-        case '[':
-          e.preventDefault();
-          insertText('[]');
-          textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
-          break;
-        case '{':
-          e.preventDefault();
-          insertText('{}');
-          textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
-          break;
-        case '"':
-          e.preventDefault();
-          insertText('""');
-          textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
-          break;
-        case "'":
-          e.preventDefault();
-          insertText("''");
-          textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
-          break;
-      }
+      return; // Early return to avoid other processing
     }
 
     // Tab handling for indentation
     if (e.key === 'Tab') {
       e.preventDefault();
       insertText('  '); // 2 spaces for indentation
+      return;
+    }
+
+    // Auto-closing brackets and quotes - only when not holding modifier keys
+    if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const { selectionStart, selectionEnd } = textarea;
+      if (selectionStart === selectionEnd) {
+        switch (e.key) {
+          case '(':
+            e.preventDefault();
+            insertText('()');
+            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            break;
+          case '[':
+            e.preventDefault();
+            insertText('[]');
+            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            break;
+          case '{':
+            e.preventDefault();
+            insertText('{}');
+            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            break;
+          case '"':
+            e.preventDefault();
+            insertText('""');
+            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            break;
+          case "'":
+            e.preventDefault();
+            insertText("''");
+            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            break;
+        }
+      }
     }
   }, []);
 
@@ -107,30 +111,61 @@ export function EnhancedNoteEditorTextarea({
 
     const { selectionStart, selectionEnd } = textarea;
     const selectedText = content.slice(selectionStart, selectionEnd);
-    const textToInsert = selectedText || placeholder;
-    const markdownText = `${prefix}${textToInsert}${suffix}`;
     
-    const newContent = content.slice(0, selectionStart) + markdownText + content.slice(selectionEnd);
+    // Check if the selected text already has this formatting
+    const hasFormatting = selectedText.startsWith(prefix) && selectedText.endsWith(suffix);
+    
+    let newContent: string;
+    let newSelectionStart: number;
+    let newSelectionEnd: number;
+
+    if (hasFormatting) {
+      // Remove the formatting
+      const unformattedText = selectedText.slice(prefix.length, -suffix.length);
+      newContent = content.slice(0, selectionStart) + unformattedText + content.slice(selectionEnd);
+      newSelectionStart = selectionStart;
+      newSelectionEnd = selectionStart + unformattedText.length;
+    } else {
+      // Add the formatting
+      const textToFormat = selectedText || placeholder;
+      const formattedText = `${prefix}${textToFormat}${suffix}`;
+      newContent = content.slice(0, selectionStart) + formattedText + content.slice(selectionEnd);
+      
+      if (selectedText) {
+        // Keep the original text selected (without the formatting markers)
+        newSelectionStart = selectionStart + prefix.length;
+        newSelectionEnd = selectionStart + prefix.length + selectedText.length;
+      } else {
+        // Select the placeholder text
+        newSelectionStart = selectionStart + prefix.length;
+        newSelectionEnd = selectionStart + prefix.length + placeholder.length;
+      }
+    }
+    
     onContentChange(newContent);
 
-    // Set cursor position
+    // Set cursor/selection position
     setTimeout(() => {
-      if (selectedText) {
-        textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + selectedText.length);
-      } else {
-        textarea.setSelectionRange(selectionStart + prefix.length, selectionStart + prefix.length + placeholder.length);
-      }
+      textarea.setSelectionRange(newSelectionStart, newSelectionEnd);
       textarea.focus();
     }, 0);
   }, [content, onContentChange]);
 
-  // Expose methods for toolbar to use
+  // Expose methods for toolbar and external use
   useEffect(() => {
     if (textareaRef.current) {
       (textareaRef.current as any).insertMarkdown = insertMarkdownAtSelection;
       (textareaRef.current as any).insertText = insertText;
+      (textareaRef.current as any).getSelectedText = () => {
+        const { selectionStart, selectionEnd } = textareaRef.current!;
+        return content.slice(selectionStart, selectionEnd);
+      };
+      (textareaRef.current as any).getSelection = () => {
+        const { selectionStart, selectionEnd } = textareaRef.current!;
+        return { start: selectionStart, end: selectionEnd };
+      };
     }
-  }, [insertMarkdownAtSelection, insertText]);
+  }, [insertMarkdownAtSelection, insertText, content]);
 
   return (
     <div className="h-full flex flex-col">
