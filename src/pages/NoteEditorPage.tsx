@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useDebounce } from '@/hooks/useDebounce';
-import { NoteEditorToolbar } from '@/components/notes/NoteEditorToolbar';
+import { EnhancedNoteEditorToolbar } from '@/components/notes/EnhancedNoteEditorToolbar';
 import { NoteEditorLayout } from '@/components/notes/NoteEditorLayout';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -123,6 +123,8 @@ export default function NoteEditorPage() {
   };
 
   const formatSelection = (format: string) => {
+    // The EnhancedNoteEditorTextarea will handle the actual text insertion
+    // through its insertMarkdown method. This acts as a fallback.
     switch (format) {
       case 'bold':
         insertMarkdown('**bold text**');
@@ -130,19 +132,22 @@ export default function NoteEditorPage() {
       case 'italic':
         insertMarkdown('*italic text*');
         break;
+      case 'underline':
+        insertMarkdown('<u>underlined text</u>');
+        break;
       case 'strikethrough':
         insertMarkdown('~~strikethrough text~~');
         break;
-      case 'code':
+      case 'inline-code':
         insertMarkdown('`inline code`');
         break;
-      case 'h1':
+      case 'heading1':
         insertMarkdown('\n# Heading 1\n');
         break;
-      case 'h2':
+      case 'heading2':
         insertMarkdown('\n## Heading 2\n');
         break;
-      case 'h3':
+      case 'heading3':
         insertMarkdown('\n### Heading 3\n');
         break;
       case 'unordered-list':
@@ -154,6 +159,9 @@ export default function NoteEditorPage() {
       case 'task-list':
         insertMarkdown('\n- [ ] Task item\n- [x] Completed task\n');
         break;
+      case 'blockquote':
+        insertMarkdown('\n> This is a quote\n> It can span multiple lines\n');
+        break;
       case 'link':
         insertMarkdown('[link text](https://example.com)');
         break;
@@ -164,12 +172,9 @@ export default function NoteEditorPage() {
         insertMarkdown('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
         break;
       case 'code-block':
-        insertMarkdown('\n```\ncode block\n```\n');
+        insertMarkdown('\n```javascript\n// Your code here\nconsole.log("Hello World!");\n```\n');
         break;
-      case 'quote':
-        insertMarkdown('\n> This is a quote\n> It can span multiple lines\n');
-        break;
-      case 'hr':
+      case 'horizontal-rule':
         insertMarkdown('\n---\n');
         break;
       default:
@@ -245,7 +250,7 @@ export default function NoteEditorPage() {
       </div>
 
       {/* Toolbar */}
-      <NoteEditorToolbar onFormat={formatSelection} />
+      <EnhancedNoteEditorToolbar onFormat={formatSelection} />
 
       {/* Editor Layout */}
       <div className="flex-1 overflow-hidden">

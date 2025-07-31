@@ -1,27 +1,30 @@
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { NoteEditorTextarea } from './NoteEditorTextarea';
-import { NoteEditorPreview } from './NoteEditorPreview';
+import { EnhancedNoteEditorTextarea } from './EnhancedNoteEditorTextarea';
+import { EnhancedNoteEditorPreview } from './EnhancedNoteEditorPreview';
 
 interface NoteEditorLayoutProps {
   content: string;
   onContentChange: (content: string) => void;
   viewMode: 'edit' | 'preview' | 'split';
   title: string;
+  onSelectionChange?: (start: number, end: number) => void;
 }
 
 export function NoteEditorLayout({ 
   content, 
   onContentChange, 
   viewMode, 
-  title 
+  title,
+  onSelectionChange
 }: NoteEditorLayoutProps) {
   if (viewMode === 'edit') {
     return (
       <div className="h-full">
-        <NoteEditorTextarea
+        <EnhancedNoteEditorTextarea
           content={content}
           onContentChange={onContentChange}
+          onSelectionChange={onSelectionChange}
         />
       </div>
     );
@@ -30,7 +33,7 @@ export function NoteEditorLayout({
   if (viewMode === 'preview') {
     return (
       <div className="h-full">
-        <NoteEditorPreview
+        <EnhancedNoteEditorPreview
           content={content}
           title={title}
         />
@@ -42,14 +45,15 @@ export function NoteEditorLayout({
   return (
     <ResizablePanelGroup direction="horizontal" className="h-full">
       <ResizablePanel defaultSize={50} minSize={30}>
-        <NoteEditorTextarea
+        <EnhancedNoteEditorTextarea
           content={content}
           onContentChange={onContentChange}
+          onSelectionChange={onSelectionChange}
         />
       </ResizablePanel>
       <ResizableHandle withHandle />
       <ResizablePanel defaultSize={50} minSize={30}>
-        <NoteEditorPreview
+        <EnhancedNoteEditorPreview
           content={content}
           title={title}
         />
