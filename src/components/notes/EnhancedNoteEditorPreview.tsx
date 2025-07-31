@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Prism from 'prismjs';
+import { renderMathInElement, parseMathExpressions } from './MathRenderer';
+import { renderMermaidInElement, parseMermaidDiagrams } from './DiagramRenderer';
 
 // Import Prism themes and languages
 import 'prismjs/themes/prism-tomorrow.css';
@@ -21,7 +23,12 @@ interface EnhancedNoteEditorPreviewProps {
 }
 
 export function EnhancedNoteEditorPreview({ content, title }: EnhancedNoteEditorPreviewProps) {
+  const previewRef = useRef<HTMLDivElement>(null);
+
   const renderMarkdown = (text: string) => {
+    // Parse math expressions and mermaid diagrams first
+    text = parseMathExpressions(text);
+    text = parseMermaidDiagrams(text);
     if (!text.trim()) return '';
     
     // Configure marked for GitHub Flavored Markdown
@@ -94,6 +101,12 @@ export function EnhancedNoteEditorPreview({ content, title }: EnhancedNoteEditor
   // Re-run Prism highlighting after content updates
   useEffect(() => {
     Prism.highlightAll();
+    
+    // Render math and diagrams after content update
+    if (previewRef.current) {
+      renderMathInElement(previewRef.current);
+      renderMermaidInElement(previewRef.current);
+    }
   }, [content]);
 
   const getWordCount = (text: string) => {

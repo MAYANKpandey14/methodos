@@ -25,7 +25,10 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  MoreHorizontal
+  MoreHorizontal,
+  Search,
+  Hash,
+  BarChart3
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -33,6 +36,9 @@ interface EnhancedNoteEditorToolbarProps {
   onFormat: (format: string) => void;
   onInsertImage?: () => void;
   onTogglePreview?: () => void;
+  onToggleFindReplace?: () => void;
+  onToggleOutline?: () => void;
+  onToggleStats?: () => void;
   showPreview?: boolean;
   isMobile?: boolean;
 }
@@ -49,6 +55,9 @@ export function EnhancedNoteEditorToolbar({
   onFormat, 
   onInsertImage, 
   onTogglePreview,
+  onToggleFindReplace,
+  onToggleOutline,
+  onToggleStats,
   showPreview = false,
   isMobile = false
 }: EnhancedNoteEditorToolbarProps) {

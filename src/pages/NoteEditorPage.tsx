@@ -5,8 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { EnhancedNoteEditorToolbar } from '@/components/notes/EnhancedNoteEditorToolbar';
 import { NoteEditorLayout } from '@/components/notes/NoteEditorLayout';
+import { DocumentOutline } from '@/components/notes/DocumentOutline';
+import { FindReplacePanel } from '@/components/notes/FindReplacePanel';
+import { DocumentStats } from '@/components/notes/DocumentStats';
+import { ImageUploadHandler } from '@/components/notes/ImageUploadHandler';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,6 +28,12 @@ export default function NoteEditorPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [showOutline, setShowOutline] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+
+  const isMobile = useIsMobile();
 
   const { data: notes = [] } = useNotes();
   const createNote = useCreateNote();
@@ -250,17 +261,71 @@ export default function NoteEditorPage() {
       </div>
 
       {/* Toolbar */}
-      <EnhancedNoteEditorToolbar onFormat={formatSelection} />
-
-      {/* Editor Layout */}
-      <div className="flex-1 overflow-hidden">
-        <NoteEditorLayout
-          content={content}
-          onContentChange={setContent}
-          viewMode={viewMode}
-          title={title}
+      <div className="border-b">
+        <EnhancedNoteEditorToolbar 
+          onFormat={formatSelection}
+          onInsertImage={() => setShowImageUpload(true)}
+          onTogglePreview={() => setViewMode(viewMode === 'preview' ? 'edit' : 'preview')}
+          onToggleFindReplace={() => setShowFindReplace(!showFindReplace)}
+          onToggleOutline={() => setShowOutline(!showOutline)}
+          onToggleStats={() => setShowStats(!showStats)}
+          showPreview={viewMode === 'preview'}
+          isMobile={isMobile}
         />
+        
+        {showFindReplace && (
+          <FindReplacePanel
+            content={content}
+            onContentChange={setContent}
+            onClose={() => setShowFindReplace(false)}
+          />
+        )}
       </div>
+
+      {/* Main Content with Side Panels */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          <NoteEditorLayout
+            content={content}
+            onContentChange={setContent}
+            viewMode={viewMode}
+            title={title}
+          />
+        </div>
+        
+        {/* Side Panels */}
+        {(showOutline || showStats) && (
+          <div className="w-80 border-l bg-muted/20 overflow-y-auto">
+            {showOutline && (
+              <DocumentOutline
+                content={content}
+                className="m-4"
+              />
+            )}
+            {showStats && (
+              <DocumentStats
+                content={content}
+                title={title}
+                className="m-4"
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Image Upload Overlay */}
+      {showImageUpload && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <ImageUploadHandler
+            onImageInsert={(markdown) => {
+              setContent(prev => prev + '\n' + markdown);
+              setShowImageUpload(false);
+            }}
+            onClose={() => setShowImageUpload(false)}
+            className="w-full max-w-lg"
+          />
+        </div>
+      )}
 
       {/* Status Bar */}
       <div className="border-t px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
