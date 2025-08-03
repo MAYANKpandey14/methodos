@@ -3,6 +3,16 @@ import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Popover, 
+  PopoverBody, 
+  PopoverContent, 
+  PopoverDescription, 
+  PopoverHeader, 
+  PopoverTitle, 
+  PopoverTrigger, 
+  PopoverFooter 
+} from '@/components/ui/popover';
 import { LogoutConfirmDialog } from '@/components/LogoutConfirmDialog';
 import { MobileNavigation } from '@/components/MobileNavigation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -14,7 +24,8 @@ import {
   Settings,
   LogOut,
   Bookmark,
-  StickyNote
+  StickyNote,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -223,29 +234,65 @@ const Layout = () => {
               />
               <div className="text-lg font-bold text-foreground">FocusFlow</div>
               <div className="flex items-center space-x-2">
-                <Link to="/settings">
-                  <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out hover:scale-110">
-                    <AvatarImage
-                      src={getAvatarUrl() || undefined}
-                      alt={`${profile?.display_name || 'User'}'s profile picture`}
-                    />
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogoutClick}
-                  className={cn(
-                    'text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ease-in-out hover:scale-110',
-                    getFocusRing()
-                  )}
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={getAvatarUrl() || undefined}
+                          alt={`${profile?.display_name || 'User'}'s profile picture`}
+                        />
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-62" align="end">
+                    <PopoverHeader>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage
+                            src={getAvatarUrl() || undefined}
+                            alt={`${profile?.display_name || 'User'}'s profile picture`}
+                          />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <PopoverTitle>{profile?.display_name || user?.email}</PopoverTitle>
+                          <PopoverDescription className="text-xs">{user?.email}</PopoverDescription>
+                        </div>
+                      </div>
+                    </PopoverHeader>
+                    <PopoverBody className="space-y-1 px-2 py-1">
+                      <Link to="/settings">
+                        <Button variant="ghost" className="w-full justify-start" size="sm">
+                          <User className="mr-2 h-4 w-4" />
+                          View Profile
+                        </Button>
+                      </Link>
+                      <Link to="/settings">
+                        <Button variant="ghost" className="w-full justify-start" size="sm">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Settings
+                        </Button>
+                      </Link>
+                    </PopoverBody>
+                    <PopoverFooter>
+                      <Button 
+                        variant="outline" 
+                        className="w-full bg-transparent" 
+                        size="sm"
+                        onClick={handleLogoutClick}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out
+                      </Button>
+                    </PopoverFooter>
+                  </PopoverContent>
+                </Popover>
               </div>
             </header>
           )}
