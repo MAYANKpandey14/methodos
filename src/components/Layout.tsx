@@ -269,12 +269,6 @@ const Layout = () => {
                     <PopoverBody className="space-y-1 px-2 py-1">
                       <Link to="/settings">
                         <Button variant="ghost" className="w-full justify-start" size="sm">
-                          <User className="mr-2 h-4 w-4" />
-                          View Profile
-                        </Button>
-                      </Link>
-                      <Link to="/settings">
-                        <Button variant="ghost" className="w-full justify-start" size="sm">
                           <Settings className="mr-2 h-4 w-4" />
                           Settings
                         </Button>
