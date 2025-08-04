@@ -41,10 +41,8 @@ const transformTask = (dbTask: DbTask): Task => ({
 });
 
 export const useTasks = (filters?: TaskFilters) => {
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   
   return useQuery({
     queryKey: ['tasks', user?.id, filters],
@@ -100,10 +98,8 @@ export const useTasks = (filters?: TaskFilters) => {
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useMutation({
     mutationFn: async (taskData: {
@@ -208,10 +204,8 @@ export const useCreateTask = () => {
 
 export const useUpdateTask = () => {
   const queryClient = useQueryClient();
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
@@ -275,10 +269,8 @@ export const useUpdateTask = () => {
 
 export const useDeleteTask = () => {
   const queryClient = useQueryClient();
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useMutation({
     mutationFn: async (taskId: string) => {

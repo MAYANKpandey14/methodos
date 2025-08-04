@@ -11,10 +11,8 @@ interface Tag {
 }
 
 export const useTags = () => {
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   
   return useQuery({
     queryKey: ['tags', user?.id],
@@ -36,10 +34,8 @@ export const useTags = () => {
 
 export const useCreateTag = () => {
   const queryClient = useQueryClient();
-  const { user, isAuthenticated } = useAuthStore(state => ({ 
-    user: state.user, 
-    isAuthenticated: state.isAuthenticated 
-  }));
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useMutation({
     mutationFn: async (tagData: { name: string; color?: string }) => {
