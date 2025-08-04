@@ -13,6 +13,8 @@ import { DocumentOutline } from '@/components/notes/DocumentOutline';
 import { FindReplacePanel } from '@/components/notes/FindReplacePanel';
 import { DocumentStats } from '@/components/notes/DocumentStats';
 import { ImageUploadHandler } from '@/components/notes/ImageUploadHandler';
+import { ExportDialog } from '@/components/notes/ExportDialog';
+import { ExportService } from '@/services/exportService';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,6 +35,7 @@ export default function NoteEditorPage() {
   const [showOutline, setShowOutline] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const isMobile = useIsMobile();
 
@@ -233,6 +236,22 @@ export default function NoteEditorPage() {
     }
   }, []);
 
+  const handleExport = () => {
+    setShowExportDialog(true);
+  };
+
+  const handlePrint = async () => {
+    try {
+      await ExportService.print(content, title || 'Untitled');
+    } catch (error) {
+      toast({
+        title: "Print Error",
+        description: "Failed to print the note",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Character and word count
   const charCount = content.length;
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -309,6 +328,8 @@ export default function NoteEditorPage() {
           onToggleFindReplace={() => setShowFindReplace(!showFindReplace)}
           onToggleOutline={() => setShowOutline(!showOutline)}
           onToggleStats={() => setShowStats(!showStats)}
+          onExport={handleExport}
+          onPrint={handlePrint}
           showPreview={viewMode === 'preview'}
           isMobile={isMobile}
         />
@@ -366,6 +387,14 @@ export default function NoteEditorPage() {
           />
         </div>
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        content={content}
+        defaultTitle={title || 'Untitled'}
+      />
 
       {/* Status Bar */}
       <div className="border-t px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">

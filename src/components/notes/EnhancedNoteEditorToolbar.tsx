@@ -28,7 +28,9 @@ import {
   MoreHorizontal,
   Search,
   Hash,
-  BarChart3
+  BarChart3,
+  Download,
+  Printer
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -39,6 +41,8 @@ interface EnhancedNoteEditorToolbarProps {
   onToggleFindReplace?: () => void;
   onToggleOutline?: () => void;
   onToggleStats?: () => void;
+  onExport?: () => void;
+  onPrint?: () => void;
   showPreview?: boolean;
   isMobile?: boolean;
 }
@@ -58,6 +62,8 @@ export function EnhancedNoteEditorToolbar({
   onToggleFindReplace,
   onToggleOutline,
   onToggleStats,
+  onExport,
+  onPrint,
   showPreview = false,
   isMobile = false
 }: EnhancedNoteEditorToolbarProps) {
@@ -207,6 +213,46 @@ export function EnhancedNoteEditorToolbar({
             {renderToolbarItem(toolbarItems.find(item => item.action === 'image')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'table')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'code-block')!)}
+          </div>
+
+          <Separator orientation="vertical" className="h-6" />
+
+          {/* Export & Print */}
+          <div className="flex items-center space-x-1">
+            {onExport && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onExport}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Download size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Export Note
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {onPrint && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onPrint}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Printer size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Print Note
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
 
