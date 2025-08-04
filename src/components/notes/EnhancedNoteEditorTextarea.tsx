@@ -74,6 +74,83 @@ export function EnhancedNoteEditorTextarea({
       return;
     }
 
+    // Enter key handling for smart list continuation
+    if (e.key === 'Enter') {
+      const { selectionStart } = textarea;
+      const lines = content.slice(0, selectionStart).split('\n');
+      const currentLine = lines[lines.length - 1];
+      
+      // Check for numbered list
+      const numberedMatch = currentLine.match(/^(\s*)(\d+)\.\s(.*)$/);
+      if (numberedMatch) {
+        const [, indent, number, text] = numberedMatch;
+        if (text.trim() === '') {
+          // Empty list item - remove it and exit list
+          e.preventDefault();
+          const newContent = content.slice(0, selectionStart - currentLine.length) + 
+                           content.slice(selectionStart);
+          onContentChange(newContent);
+          setTimeout(() => {
+            const newPos = selectionStart - currentLine.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }, 0);
+        } else {
+          // Continue numbered list
+          e.preventDefault();
+          const nextNumber = parseInt(number) + 1;
+          const continuation = `\n${indent}${nextNumber}. `;
+          insertText(continuation);
+        }
+        return;
+      }
+      
+      // Check for bullet list
+      const bulletMatch = currentLine.match(/^(\s*)(-|\*|\+)\s(.*)$/);
+      if (bulletMatch) {
+        const [, indent, bullet, text] = bulletMatch;
+        if (text.trim() === '') {
+          // Empty list item - remove it and exit list
+          e.preventDefault();
+          const newContent = content.slice(0, selectionStart - currentLine.length) + 
+                           content.slice(selectionStart);
+          onContentChange(newContent);
+          setTimeout(() => {
+            const newPos = selectionStart - currentLine.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }, 0);
+        } else {
+          // Continue bullet list
+          e.preventDefault();
+          const continuation = `\n${indent}${bullet} `;
+          insertText(continuation);
+        }
+        return;
+      }
+      
+      // Check for task list
+      const taskMatch = currentLine.match(/^(\s*)(-|\*|\+)\s\[([ x])\]\s(.*)$/);
+      if (taskMatch) {
+        const [, indent, bullet, , text] = taskMatch;
+        if (text.trim() === '') {
+          // Empty task item - remove it and exit list
+          e.preventDefault();
+          const newContent = content.slice(0, selectionStart - currentLine.length) + 
+                           content.slice(selectionStart);
+          onContentChange(newContent);
+          setTimeout(() => {
+            const newPos = selectionStart - currentLine.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }, 0);
+        } else {
+          // Continue task list
+          e.preventDefault();
+          const continuation = `\n${indent}${bullet} [ ] `;
+          insertText(continuation);
+        }
+        return;
+      }
+    }
+
     // Auto-closing brackets and quotes - only when not holding modifier keys
     if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const { selectionStart, selectionEnd } = textarea;
@@ -81,28 +158,33 @@ export function EnhancedNoteEditorTextarea({
         switch (e.key) {
           case '(':
             e.preventDefault();
-            insertText('()');
-            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            const parenContent = content.slice(0, selectionStart) + '()' + content.slice(selectionEnd);
+            onContentChange(parenContent);
+            setTimeout(() => textarea.setSelectionRange(selectionStart + 1, selectionStart + 1), 0);
             break;
           case '[':
             e.preventDefault();
-            insertText('[]');
-            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            const bracketContent = content.slice(0, selectionStart) + '[]' + content.slice(selectionEnd);
+            onContentChange(bracketContent);
+            setTimeout(() => textarea.setSelectionRange(selectionStart + 1, selectionStart + 1), 0);
             break;
           case '{':
             e.preventDefault();
-            insertText('{}');
-            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            const braceContent = content.slice(0, selectionStart) + '{}' + content.slice(selectionEnd);
+            onContentChange(braceContent);
+            setTimeout(() => textarea.setSelectionRange(selectionStart + 1, selectionStart + 1), 0);
             break;
           case '"':
             e.preventDefault();
-            insertText('""');
-            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            const quoteContent = content.slice(0, selectionStart) + '""' + content.slice(selectionEnd);
+            onContentChange(quoteContent);
+            setTimeout(() => textarea.setSelectionRange(selectionStart + 1, selectionStart + 1), 0);
             break;
           case "'":
             e.preventDefault();
-            insertText("''");
-            textarea.setSelectionRange(selectionStart + 1, selectionStart + 1);
+            const apostropheContent = content.slice(0, selectionStart) + "''" + content.slice(selectionEnd);
+            onContentChange(apostropheContent);
+            setTimeout(() => textarea.setSelectionRange(selectionStart + 1, selectionStart + 1), 0);
             break;
         }
       }
@@ -119,7 +201,8 @@ export function EnhancedNoteEditorTextarea({
 
     // Set cursor position after the inserted text
     setTimeout(() => {
-      textarea.setSelectionRange(selectionStart + text.length, selectionStart + text.length);
+      const newCursorPos = selectionStart + text.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
       textarea.focus();
     }, 0);
   }, [content, onContentChange]);

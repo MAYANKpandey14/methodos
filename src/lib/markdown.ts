@@ -126,12 +126,34 @@ class MarkdownService {
       return `<blockquote class="border-l-4 border-primary pl-6 py-2 my-6 bg-muted/30 italic text-muted-foreground">${text}</blockquote>`;
     };
 
-    // Enhanced list rendering
+    // Enhanced list rendering with task list support
     renderer.list = (token) => {
       const type = token.ordered ? 'ol' : 'ul';
       const start = token.start && token.start > 1 ? ` start="${token.start}"` : '';
       const className = token.ordered ? 'list-decimal' : 'list-disc';
-      const body = token.items.map(item => `<li class="mb-2">${item.text}</li>`).join('');
+      
+      const body = token.items.map(item => {
+        let itemText = item.text;
+        
+        // Handle task list items
+        const taskMatch = itemText.match(/^\[([ x])\]\s+(.*)$/);
+        if (taskMatch) {
+          const [, checked, text] = taskMatch;
+          const isChecked = checked === 'x';
+          return `<li class="mb-2 flex items-start space-x-2 list-none">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} class="mt-1 rounded border-border" disabled />
+            <span class="${isChecked ? 'line-through text-muted-foreground' : ''}">${text}</span>
+          </li>`;
+        }
+        
+        return `<li class="mb-2">${itemText}</li>`;
+      }).join('');
+      
+      // For task lists, don't add list styling
+      const hasTaskItems = token.items.some(item => /^\[([ x])\]\s+/.test(item.text));
+      if (hasTaskItems) {
+        return `<ul class="space-y-2 my-4 text-foreground">${body}</ul>`;
+      }
       
       return `<${type}${start} class="${className} list-inside space-y-2 my-4 text-foreground">${body}</${type}>`;
     };
@@ -161,14 +183,14 @@ class MarkdownService {
       </h${level}>`;
     };
 
-    // Enhanced link rendering
+    // Enhanced link rendering - ALL links open in new tabs
     renderer.link = (token) => {
       const href = token.href;
       const title = token.title ? ` title="${token.title}"` : '';
       const text = token.text;
       
-      const isExternal = href.startsWith('http') && !href.includes(window.location.hostname);
-      const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+      // Force ALL links to open in new tabs
+      const target = ' target="_blank" rel="noopener noreferrer"';
       
       return `<a href="${href}"${title}${target} class="text-primary hover:underline">${text}</a>`;
     };
