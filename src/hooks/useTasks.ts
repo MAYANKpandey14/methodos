@@ -250,6 +250,7 @@ export const useUpdateTask = () => {
       if (updates.isCompleted !== undefined) dbUpdates.is_completed = updates.isCompleted;
       if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate?.toISOString();
 
+      // Update main task fields
       const { data, error } = await supabase
         .from('tasks')
         .update(dbUpdates)
@@ -259,6 +260,63 @@ export const useUpdateTask = () => {
         .single();
 
       if (error) throw error;
+
+      // Handle tags update if provided
+      if (updates.tags !== undefined) {
+        // Sanitize and validate tags
+        const sanitizedTags = updates.tags
+          .map(tag => sanitizeInput(tag, 50))
+          .filter(tag => tag.length > 0)
+          .slice(0, 10); // Limit to 10 tags max
+
+        // Delete existing tag relationships
+        const { error: deleteError } = await supabase
+          .from('task_tags')
+          .delete()
+          .eq('task_id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Create new tag relationships
+        for (const tagName of sanitizedTags) {
+          // Create or get tag
+          const { data: existingTag } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', tagName)
+            .single();
+
+          let tagId: string;
+
+          if (existingTag) {
+            tagId = existingTag.id;
+          } else {
+            const { data: newTag, error: tagError } = await supabase
+              .from('tags')
+              .insert({
+                user_id: user.id,
+                name: tagName
+              })
+              .select('id')
+              .single();
+
+            if (tagError) throw tagError;
+            tagId = newTag.id;
+          }
+
+          // Link tag to task
+          const { error: linkError } = await supabase
+            .from('task_tags')
+            .insert({
+              task_id: id,
+              tag_id: tagId
+            });
+
+          if (linkError) throw linkError;
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
