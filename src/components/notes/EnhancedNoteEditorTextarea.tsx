@@ -5,14 +5,33 @@ interface EnhancedNoteEditorTextareaProps {
   content: string;
   onContentChange: (content: string) => void;
   onSelectionChange?: (start: number, end: number) => void;
+  onScroll?: (scrollTop: number, scrollHeight: number) => void;
+  scrollSyncTarget?: number;
 }
 
 export function EnhancedNoteEditorTextarea({ 
   content, 
   onContentChange, 
-  onSelectionChange 
+  onSelectionChange,
+  onScroll,
+  scrollSyncTarget 
 }: EnhancedNoteEditorTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle scroll events for synchronization
+  const handleScroll = useCallback((event: React.UIEvent<HTMLTextAreaElement>) => {
+    if (onScroll) {
+      const target = event.target as HTMLTextAreaElement;
+      onScroll(target.scrollTop, target.scrollHeight);
+    }
+  }, [onScroll]);
+
+  // Sync scroll position from external source
+  useEffect(() => {
+    if (scrollSyncTarget !== undefined && textareaRef.current) {
+      textareaRef.current.scrollTop = scrollSyncTarget * textareaRef.current.scrollHeight;
+    }
+  }, [scrollSyncTarget]);
 
   const handleSelectionChange = useCallback(() => {
     if (textareaRef.current && onSelectionChange) {
@@ -175,6 +194,7 @@ export function EnhancedNoteEditorTextarea({
         onChange={(e) => onContentChange(e.target.value)}
         onSelect={handleSelectionChange}
         onKeyDown={handleKeyDown}
+        onScroll={handleScroll}
         placeholder="Start writing your note..."
         className="h-full resize-none border-0 rounded-none shadow-none focus-visible:ring-0 text-sm leading-relaxed font-mono"
         style={{ minHeight: '100%' }}

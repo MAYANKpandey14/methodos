@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useDebounce } from '@/hooks/useDebounce';
+import { DEBOUNCE_TIMES } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EnhancedNoteEditorToolbar } from '@/components/notes/EnhancedNoteEditorToolbar';
 import { NoteEditorLayout } from '@/components/notes/NoteEditorLayout';
@@ -43,8 +44,8 @@ export default function NoteEditorPage() {
   const currentNote = isNewNote ? null : notes.find(note => note.id === id);
 
   // Debounced auto-save for existing notes
-  const debouncedTitle = useDebounce(title, 2000);
-  const debouncedContent = useDebounce(content, 2000);
+  const debouncedTitle = useDebounce(title, DEBOUNCE_TIMES.AUTO_SAVE);
+  const debouncedContent = useDebounce(content, DEBOUNCE_TIMES.AUTO_SAVE);
 
   useEffect(() => {
     if (currentNote) {
@@ -219,7 +220,7 @@ export default function NoteEditorPage() {
         break;
       case 'code-block':
         if (textareaEnhanced.insertText) {
-          textareaEnhanced.insertText('\n```javascript\n// Your code here\nconsole.log("Hello World!");\n```\n');
+          textareaEnhanced.insertText('\n```javascript\n// Your code here\nconsole.log("Hello, World!");\n```\n');
         }
         break;
       case 'horizontal-rule':

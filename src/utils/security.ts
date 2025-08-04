@@ -1,4 +1,7 @@
 
+import { User } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
 // Security utilities for input validation and sanitization
 
 export const sanitizeInput = (input: string, maxLength: number = 1000): string => {
@@ -136,8 +139,8 @@ export const logSecurityEvent = (event: string, details: Record<string, any>) =>
     ...details
   };
   
-  // In production, this should be sent to a secure logging service
-  console.warn('SECURITY EVENT:', logEntry);
+  // Use centralized logging for security events
+  logger.security(logEntry.event, logEntry);
 };
 
 export const rateLimitTracker = new Map<string, { count: number; lastReset: number }>();

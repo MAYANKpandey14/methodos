@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { EnhancedNoteEditorTextarea } from './EnhancedNoteEditorTextarea';
-import { EnhancedNoteEditorPreview } from './EnhancedNoteEditorPreview';
+import { MarkdownPreview } from './MarkdownPreview';
 
 interface NoteEditorLayoutProps {
   content: string;
@@ -18,6 +18,25 @@ export function NoteEditorLayout({
   title,
   onSelectionChange
 }: NoteEditorLayoutProps) {
+  const [editorScrollTop, setEditorScrollTop] = useState(0);
+  const [previewScrollTop, setPreviewScrollTop] = useState(0);
+  const [enableScrollSync, setEnableScrollSync] = useState(true);
+
+  // Handle scroll synchronization between editor and preview
+  const handleEditorScroll = useCallback((scrollTop: number, scrollHeight: number) => {
+    if (enableScrollSync && viewMode === 'split') {
+      const scrollRatio = scrollTop / scrollHeight;
+      setPreviewScrollTop(scrollRatio);
+    }
+  }, [enableScrollSync, viewMode]);
+
+  const handlePreviewScroll = useCallback((scrollTop: number, scrollHeight: number) => {
+    if (enableScrollSync && viewMode === 'split') {
+      const scrollRatio = scrollTop / scrollHeight;
+      setEditorScrollTop(scrollRatio);
+    }
+  }, [enableScrollSync, viewMode]);
+
   if (viewMode === 'edit') {
     return (
       <div className="h-full">
@@ -33,7 +52,7 @@ export function NoteEditorLayout({
   if (viewMode === 'preview') {
     return (
       <div className="h-full">
-        <EnhancedNoteEditorPreview
+        <MarkdownPreview
           content={content}
           title={title}
         />
@@ -49,13 +68,18 @@ export function NoteEditorLayout({
           content={content}
           onContentChange={onContentChange}
           onSelectionChange={onSelectionChange}
+          onScroll={handleEditorScroll}
+          scrollSyncTarget={editorScrollTop}
         />
       </ResizablePanel>
       <ResizableHandle withHandle />
       <ResizablePanel defaultSize={50} minSize={30}>
-        <EnhancedNoteEditorPreview
+        <MarkdownPreview
           content={content}
           title={title}
+          onScroll={handlePreviewScroll}
+          scrollSyncTarget={previewScrollTop}
+          className="border-l"
         />
       </ResizablePanel>
     </ResizablePanelGroup>

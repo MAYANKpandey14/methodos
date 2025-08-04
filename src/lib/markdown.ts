@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import Prism from 'prismjs';
 import katex from 'katex';
 import mermaid from 'mermaid';
+import { logger } from './logger';
 
 // Import additional Prism language components
 import 'prismjs/components/prism-typescript';
@@ -13,6 +14,7 @@ import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-yaml';
+import { CACHE_CONFIG } from './constants';
 
 interface MarkdownCache {
   content: string;
@@ -38,8 +40,8 @@ class MarkdownService {
       enableMath: true,
       enableDiagrams: true,
       enableSyntaxHighlighting: true,
-      maxCacheSize: 100,
-      cacheTimeout: 5 * 60 * 1000, // 5 minutes
+      maxCacheSize: CACHE_CONFIG.MARKDOWN_MAX_SIZE,
+      cacheTimeout: CACHE_CONFIG.MARKDOWN_TIMEOUT,
       ...options,
     };
 
@@ -88,7 +90,7 @@ class MarkdownService {
           const highlighted = Prism.highlight(code, Prism.languages[language], language);
           return `<pre class="bg-muted text-foreground p-4 rounded-lg overflow-x-auto language-${language}"><code class="language-${language}">${highlighted}</code></pre>`;
         } catch (error) {
-          console.warn(`Syntax highlighting failed for language: ${language}`, error);
+          logger.markdownWarn(`Syntax highlighting failed for language: ${language}`, error);
         }
       }
 
@@ -203,7 +205,7 @@ class MarkdownService {
         });
         return `<span class="katex-inline">${rendered}</span>`;
       } catch (error) {
-        console.warn('KaTeX inline rendering failed:', error);
+        logger.markdownWarn('KaTeX inline rendering failed', error);
         return match;
       }
     });
@@ -217,7 +219,7 @@ class MarkdownService {
         });
         return `<div class="katex-block my-6">${rendered}</div>`;
       } catch (error) {
-        console.warn('KaTeX block rendering failed:', error);
+        logger.markdownWarn('KaTeX block rendering failed', error);
         return match;
       }
     });
@@ -239,7 +241,7 @@ class MarkdownService {
         element.innerHTML = svg;
         element.removeAttribute('data-mermaid');
       } catch (error) {
-        console.warn('Mermaid rendering failed:', error);
+        logger.markdownWarn('Mermaid rendering failed', error);
         element.innerHTML = `<pre class="bg-muted text-foreground p-4 rounded-lg">${this.escapeHtml(code)}</pre>`;
       }
     }
@@ -325,7 +327,7 @@ class MarkdownService {
 
       return sanitizedHtml;
     } catch (error) {
-      console.error('Markdown rendering failed:', error);
+      logger.markdownError('Async markdown rendering failed', error);
       return `<p class="text-red-500">Failed to render markdown</p>`;
     }
   }
@@ -364,7 +366,7 @@ class MarkdownService {
 
       return sanitizedHtml;
     } catch (error) {
-      console.error('Markdown rendering failed:', error);
+      logger.markdownError('Sync markdown rendering failed', error);
       return `<p class="text-red-500">Failed to render markdown</p>`;
     }
   }
