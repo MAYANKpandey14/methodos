@@ -180,10 +180,13 @@ export function EnhancedNoteEditorToolbar({
   return (
     <TooltipProvider>
       <div className="flex items-center justify-between p-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center space-x-1">
-          {/* Text Formatting */}
+        <div className="flex items-center space-x-2">
+          {/* Basic Text Formatting */}
           <div className="flex items-center space-x-1">
-            {primaryItems.slice(0, 5).map(item => renderToolbarItem(item))}
+            {renderToolbarItem(toolbarItems.find(item => item.action === 'bold')!)}
+            {renderToolbarItem(toolbarItems.find(item => item.action === 'italic')!)}
+            {renderToolbarItem(toolbarItems.find(item => item.action === 'underline')!)}
+            {renderToolbarItem(toolbarItems.find(item => item.action === 'strikethrough')!)}
           </div>
           
           <Separator orientation="vertical" className="h-6" />
@@ -197,7 +200,7 @@ export function EnhancedNoteEditorToolbar({
           
           <Separator orientation="vertical" className="h-6" />
           
-          {/* Lists */}
+          {/* Lists & Structure */}
           <div className="flex items-center space-x-1">
             {renderToolbarItem(toolbarItems.find(item => item.action === 'unordered-list')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'ordered-list')!)}
@@ -213,11 +216,12 @@ export function EnhancedNoteEditorToolbar({
             {renderToolbarItem(toolbarItems.find(item => item.action === 'image')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'table')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'code-block')!)}
+            {renderToolbarItem(toolbarItems.find(item => item.action === 'inline-code')!)}
           </div>
 
           <Separator orientation="vertical" className="h-6" />
 
-          {/* Export & Print */}
+          {/* Actions */}
           <div className="flex items-center space-x-1">
             {onExport && (
               <Tooltip>

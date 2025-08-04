@@ -212,42 +212,65 @@ export class ExportService {
       
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        throw new Error('Could not open print window');
+        throw new Error('Could not open print window. Please allow popups for this site.');
       }
 
       const printContent = `
         <!DOCTYPE html>
         <html>
           <head>
+            <meta charset="UTF-8">
             <title>${title || 'Note'}</title>
             <style>
+              * {
+                box-sizing: border-box;
+              }
+              
+              @page {
+                margin: 2cm;
+                size: A4;
+              }
+              
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                line-height: 1.6;
+                color: #000;
+                background: #fff;
+                margin: 0;
+                padding: 20px;
+                font-size: 12pt;
+              }
+              
               @media print {
+                body {
+                  padding: 0;
+                }
                 * {
                   -webkit-print-color-adjust: exact !important;
                   color-adjust: exact !important;
                 }
-                @page {
-                  margin: 2cm;
-                  size: A4;
-                }
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  line-height: 1.6;
-                  color: #000;
-                  background: #fff;
-                  max-width: none;
-                  margin: 0;
-                  padding: 0;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                  break-after: avoid;
-                  margin-top: 1.5em;
-                  margin-bottom: 0.5em;
-                  color: #000;
-                }
-                h1 { font-size: 24px; }
-                h2 { font-size: 20px; }
-                h3 { font-size: 18px; }
+              }
+              
+              h1, h2, h3, h4, h5, h6 {
+                break-after: avoid;
+                margin-top: 1.5em;
+                margin-bottom: 0.5em;
+                color: #000;
+                font-weight: 600;
+              }
+              
+              h1 { 
+                font-size: 20pt; 
+                border-bottom: 2px solid #000;
+                padding-bottom: 0.5em;
+              }
+              h2 { 
+                font-size: 16pt; 
+                margin-top: 2em;
+              }
+              h3 { 
+                font-size: 14pt; 
+              }
                 p, li {
                   break-inside: avoid;
                   margin-bottom: 0.5em;
