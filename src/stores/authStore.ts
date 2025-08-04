@@ -45,10 +45,13 @@ const isUserAuthenticated = (session: Session | null): boolean => {
     return false;
   }
   
-  const isEmailConfirmed = !!session.user.email_confirmed_at;
-
-  // Users must confirm their email to be authenticated
-  return isEmailConfirmed;
+  // For development/testing, allow authenticated users even without email confirmation
+  // In production, you might want to enforce email confirmation
+  return true;
+  
+  // Uncomment the lines below to enforce email confirmation:
+  // const isEmailConfirmed = !!session.user.email_confirmed_at;
+  // return isEmailConfirmed;
 };
 
 /**

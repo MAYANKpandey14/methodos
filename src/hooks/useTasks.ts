@@ -41,12 +41,15 @@ const transformTask = (dbTask: DbTask): Task => ({
 });
 
 export const useTasks = (filters?: TaskFilters) => {
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
   
   return useQuery({
     queryKey: ['tasks', user?.id, filters],
     queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       let query = supabase
         .from('tasks')
@@ -91,13 +94,16 @@ export const useTasks = (filters?: TaskFilters) => {
 
       return tasks;
     },
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 };
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
 
   return useMutation({
     mutationFn: async (taskData: {
@@ -108,7 +114,7 @@ export const useCreateTask = () => {
       dueDate?: Date;
       tags: string[];
     }) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       // Security: Validate and sanitize inputs
       const sanitizedTitle = sanitizeInput(taskData.title, 200);
@@ -202,11 +208,14 @@ export const useCreateTask = () => {
 
 export const useUpdateTask = () => {
   const queryClient = useQueryClient();
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       const dbUpdates: any = {};
       
@@ -266,11 +275,14 @@ export const useUpdateTask = () => {
 
 export const useDeleteTask = () => {
   const queryClient = useQueryClient();
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       const { error } = await supabase
         .from('tasks')

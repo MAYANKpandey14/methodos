@@ -7,9 +7,13 @@ export const useNotes = () => {
   return useQuery({
     queryKey: ['notes'],
     queryFn: async (): Promise<Note[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('notes')
         .select('*')
+        .eq('user_id', user.id)
         .order('is_pinned', { ascending: false })
         .order('updated_at', { ascending: false });
       

@@ -11,12 +11,15 @@ interface Tag {
 }
 
 export const useTags = () => {
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
   
   return useQuery({
     queryKey: ['tags', user?.id],
     queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('tags')
@@ -27,17 +30,20 @@ export const useTags = () => {
       if (error) throw error;
       return data as Tag[];
     },
-    enabled: !!user,
+    enabled: !!user && isAuthenticated,
   });
 };
 
 export const useCreateTag = () => {
   const queryClient = useQueryClient();
-  const user = useAuthStore(state => state.user);
+  const { user, isAuthenticated } = useAuthStore(state => ({ 
+    user: state.user, 
+    isAuthenticated: state.isAuthenticated 
+  }));
 
   return useMutation({
     mutationFn: async (tagData: { name: string; color?: string }) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
       // Security: Validate and sanitize tag input
       const sanitizedName = sanitizeInput(tagData.name, 50);
