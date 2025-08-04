@@ -189,7 +189,7 @@ export function EnhancedNoteEditorTextarea({
         }
       }
     }
-  }, []);
+  }, [content, onContentChange]);
 
   const insertText = useCallback((text: string) => {
     const textarea = textareaRef.current;
