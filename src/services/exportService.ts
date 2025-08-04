@@ -329,9 +329,23 @@ export class ExportService {
       printWindow.document.write(printContent);
       printWindow.document.close();
       
+      // Wait for content to load, then trigger print
       printWindow.onload = () => {
-        printWindow.print();
-        printWindow.close();
+        setTimeout(() => {
+          printWindow.print();
+          
+          // Only close after print dialog is handled
+          printWindow.onafterprint = () => {
+            printWindow.close();
+          };
+          
+          // Fallback: close after a delay if onafterprint doesn't fire
+          setTimeout(() => {
+            if (!printWindow.closed) {
+              printWindow.close();
+            }
+          }, 1000);
+        }, 100);
       };
     } catch (error) {
       console.error('Print failed:', error);
