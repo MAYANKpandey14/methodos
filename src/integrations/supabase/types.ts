@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -217,6 +217,13 @@ export type Database = {
             foreignKeyName: "task_tags_tag_id_fkey"
             columns: ["tag_id"]
             isOneToOne: false
+            referencedRelation: "tag_usage_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
             referencedRelation: "tags"
             referencedColumns: ["id"]
           },
@@ -273,10 +280,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      tag_usage_stats: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string | null
+          last_used_at: string | null
+          name: string | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      normalize_tag_name: {
+        Args: { tag_name: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
