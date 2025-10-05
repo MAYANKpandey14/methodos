@@ -19,6 +19,11 @@ export default {
 			}
 		},
 		extend: {
+			// Font families
+			fontFamily: {
+				'bricolage': ['Bricolage Grotesque', 'Inter', 'system-ui', 'sans-serif'],
+				'body': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+			},
 			// Enhanced responsive breakpoints
 			screens: {
 				'xs': '320px',

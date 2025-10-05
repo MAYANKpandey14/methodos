@@ -47,8 +47,8 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's your productivity overview.</p>
+        <h1 className="font-bricolage text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome back! Here's your productivity overview.</p>
       </div>
 
       {/* Stats Grid */}
@@ -59,7 +59,7 @@ const DashboardPage = () => {
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tasks.length}</div>
+            <div className="font-bricolage text-2xl font-bold">{tasks.length}</div>
             <p className="text-xs text-muted-foreground">
               {completedTasks.length} completed
             </p>
@@ -72,7 +72,7 @@ const DashboardPage = () => {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completionRate.toFixed(0)}%</div>
+            <div className="font-bricolage text-2xl font-bold">{completionRate.toFixed(0)}%</div>
             <Progress value={completionRate} className="mt-2" />
           </CardContent>
         </Card>
@@ -83,7 +83,7 @@ const DashboardPage = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todaySessions.length}</div>
+            <div className="font-bricolage text-2xl font-bold">{todaySessions.length}</div>
             <p className="text-xs text-muted-foreground">
               Focus sessions completed
             </p>
@@ -96,7 +96,7 @@ const DashboardPage = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Math.round(totalFocusTime / 60)}m</div>
+            <div className="font-bricolage text-2xl font-bold">{Math.round(totalFocusTime / 60)}m</div>
             <p className="text-xs text-muted-foreground">
               Total time focused
             </p>

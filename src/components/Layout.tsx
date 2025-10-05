@@ -109,7 +109,7 @@ const Layout = () => {
         {!isMobile && (
           <div className="w-64 bg-card shadow-lg flex flex-col border-r relative">
             <div className="flex items-center px-6 py-4 border-b">
-              <div className="text-xl font-bold text-foreground">MethodOS</div>
+              <div className="font-bricolage text-xl font-bold text-foreground">MethodOS</div>
             </div>
 
             <nav className="mt-6 flex-1 overflow-y-auto relative" role="navigation" aria-label="Main navigation">
@@ -232,7 +232,7 @@ const Layout = () => {
                 isOpen={mobileNavOpen}
                 onToggle={() => setMobileNavOpen(!mobileNavOpen)}
               />
-              <div className="text-lg font-bold text-foreground">MethodOS</div>
+              <div className="font-bricolage text-lg font-bold text-foreground">MethodOS</div>
               <div className="flex items-center space-x-2">
                 <Popover>
                   <PopoverTrigger asChild>
