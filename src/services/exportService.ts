@@ -4,7 +4,7 @@ import { markdownService } from '@/lib/markdown';
 
 export interface ExportOptions {
   title?: string;
-  format: 'pdf' | 'docx';
+  format: 'pdf' | 'docx' | 'md';
   includeTitle?: boolean;
   pageSize?: 'a4' | 'letter';
   margins?: number;
@@ -13,6 +13,9 @@ export interface ExportOptions {
 export class ExportService {
   static async exportToPDF(content: string, options: ExportOptions): Promise<void> {
     try {
+      // Render markdown to HTML first
+      const renderedContent = await markdownService.render(content);
+      
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -21,6 +24,7 @@ export class ExportService {
 
       const margin = options.margins || 20;
       const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       const contentWidth = pageWidth - (margin * 2);
 
       let yPosition = margin;
@@ -29,46 +33,107 @@ export class ExportService {
       if (options.includeTitle && options.title) {
         pdf.setFontSize(20);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(options.title, margin, yPosition);
-        yPosition += 15;
+        const titleLines = pdf.splitTextToSize(options.title, contentWidth);
+        pdf.text(titleLines, margin, yPosition);
+        yPosition += titleLines.length * 10 + 5;
       }
 
-      // Convert markdown to plain text with basic formatting
+      // Process markdown content
       const lines = content.split('\n');
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'normal');
 
-      for (const line of lines) {
-        if (yPosition > pdf.internal.pageSize.getHeight() - margin) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if we need a new page
+        if (yPosition > pageHeight - margin - 10) {
           pdf.addPage();
           yPosition = margin;
         }
 
+        // Handle different markdown elements
         if (line.startsWith('# ')) {
           pdf.setFontSize(18);
           pdf.setFont('helvetica', 'bold');
-          pdf.text(line.substring(2), margin, yPosition);
-          yPosition += 12;
+          const text = line.substring(2).replace(/[*_`]/g, '');
+          const splitLines = pdf.splitTextToSize(text, contentWidth);
+          pdf.text(splitLines, margin, yPosition);
+          yPosition += splitLines.length * 9 + 5;
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
         } else if (line.startsWith('## ')) {
           pdf.setFontSize(16);
           pdf.setFont('helvetica', 'bold');
-          pdf.text(line.substring(3), margin, yPosition);
-          yPosition += 10;
+          const text = line.substring(3).replace(/[*_`]/g, '');
+          const splitLines = pdf.splitTextToSize(text, contentWidth);
+          pdf.text(splitLines, margin, yPosition);
+          yPosition += splitLines.length * 8 + 4;
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
         } else if (line.startsWith('### ')) {
           pdf.setFontSize(14);
           pdf.setFont('helvetica', 'bold');
-          pdf.text(line.substring(4), margin, yPosition);
-          yPosition += 8;
-        } else if (line.trim()) {
+          const text = line.substring(4).replace(/[*_`]/g, '');
+          const splitLines = pdf.splitTextToSize(text, contentWidth);
+          pdf.text(splitLines, margin, yPosition);
+          yPosition += splitLines.length * 7 + 3;
           pdf.setFontSize(12);
           pdf.setFont('helvetica', 'normal');
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
+          // Bullet list
+          const text = '• ' + line.substring(2).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1');
+          const splitLines = pdf.splitTextToSize(text, contentWidth - 5);
+          pdf.text(splitLines, margin + 5, yPosition);
+          yPosition += splitLines.length * 5 + 2;
+        } else if (line.match(/^\d+\. /)) {
+          // Numbered list
+          const text = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1');
+          const splitLines = pdf.splitTextToSize(text, contentWidth - 5);
+          pdf.text(splitLines, margin + 5, yPosition);
+          yPosition += splitLines.length * 5 + 2;
+        } else if (line.startsWith('> ')) {
+          // Blockquote
+          pdf.setFont('helvetica', 'italic');
+          const text = line.substring(2).replace(/[*_`]/g, '');
+          const splitLines = pdf.splitTextToSize(text, contentWidth - 10);
+          pdf.text(splitLines, margin + 10, yPosition);
+          yPosition += splitLines.length * 5 + 2;
+          pdf.setFont('helvetica', 'normal');
+        } else if (line.startsWith('```')) {
+          // Code block - skip opening and find closing
+          pdf.setFont('courier', 'normal');
+          pdf.setFontSize(10);
+          i++;
+          while (i < lines.length && !lines[i].startsWith('```')) {
+            const codeLine = lines[i];
+            if (yPosition > pageHeight - margin - 10) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            const splitLines = pdf.splitTextToSize(codeLine, contentWidth);
+            pdf.text(splitLines, margin + 5, yPosition);
+            yPosition += splitLines.length * 4.5 + 1;
+            i++;
+          }
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(12);
+          yPosition += 3;
+        } else if (line.trim()) {
+          // Regular text - handle inline formatting
+          let processedText = line
+            .replace(/\*\*(.*?)\*\*/g, '$1')  // Bold
+            .replace(/\*(.*?)\*/g, '$1')       // Italic
+            .replace(/~~(.*?)~~/g, '$1')       // Strikethrough
+            .replace(/`(.*?)`/g, '$1')         // Inline code
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Links
           
-          // Handle basic text wrapping
-          const splitText = pdf.splitTextToSize(line, contentWidth);
-          pdf.text(splitText, margin, yPosition);
-          yPosition += splitText.length * 6;
+          const splitLines = pdf.splitTextToSize(processedText, contentWidth);
+          pdf.text(splitLines, margin, yPosition);
+          yPosition += splitLines.length * 5 + 2;
         } else {
-          yPosition += 6;
+          // Empty line
+          yPosition += 4;
         }
       }
 
@@ -358,6 +423,29 @@ export class ExportService {
     } catch (error) {
       console.error('Print failed:', error);
       throw new Error('Failed to print note');
+    }
+  }
+
+  static async exportToMarkdown(content: string, options: ExportOptions): Promise<void> {
+    try {
+      let markdownContent = content;
+      
+      // Add title if requested
+      if (options.includeTitle && options.title) {
+        markdownContent = `# ${options.title}\n\n${content}`;
+      }
+
+      // Create blob and download
+      const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = options.title ? `${options.title}.md` : 'note.md';
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Markdown export failed:', error);
+      throw new Error('Failed to export Markdown');
     }
   }
 }

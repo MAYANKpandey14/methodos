@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ interface ExportDialogProps {
 
 export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: ExportDialogProps) {
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
-    title: defaultTitle,
+    title: '',
     format: 'pdf',
     includeTitle: true,
     pageSize: 'a4',
@@ -33,6 +33,11 @@ export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: Ex
   });
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+
+  // Update title when defaultTitle changes
+  useEffect(() => {
+    setExportOptions(prev => ({ ...prev, title: defaultTitle }));
+  }, [defaultTitle]);
 
   const handleExport = async () => {
     if (!content.trim()) {
@@ -53,11 +58,17 @@ export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: Ex
           title: "Export Successful",
           description: "PDF has been downloaded successfully"
         });
-      } else {
+      } else if (exportOptions.format === 'docx') {
         await ExportService.exportToDOCX(content, exportOptions);
         toast({
           title: "Export Successful", 
           description: "DOCX file has been downloaded successfully"
+        });
+      } else if (exportOptions.format === 'md') {
+        await ExportService.exportToMarkdown(content, exportOptions);
+        toast({
+          title: "Export Successful",
+          description: "Markdown file has been downloaded successfully"
         });
       }
       onClose();
@@ -103,7 +114,7 @@ export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: Ex
             <Label htmlFor="format">Export Format</Label>
             <Select
               value={exportOptions.format}
-              onValueChange={(value: 'pdf' | 'docx') =>
+              onValueChange={(value: 'pdf' | 'docx' | 'md') =>
                 setExportOptions(prev => ({ ...prev, format: value }))
               }
             >
@@ -121,6 +132,12 @@ export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: Ex
                   <div className="flex items-center gap-2">
                     <FileText size={16} />
                     Word Document (DOCX)
+                  </div>
+                </SelectItem>
+                <SelectItem value="md">
+                  <div className="flex items-center gap-2">
+                    <FileText size={16} />
+                    Markdown (.md)
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -172,7 +189,7 @@ export function ExportDialog({ isOpen, onClose, content, defaultTitle = '' }: Ex
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Export {exportOptions.format.toUpperCase()}
+                Export {exportOptions.format === 'md' ? 'Markdown' : exportOptions.format.toUpperCase()}
               </>
             )}
           </Button>
