@@ -387,9 +387,9 @@ const TasksPage = () => {
                     <div
                       key={tag.id}
                       className={cn(
-                        "group flex items-center gap-0.5",
+                        "group flex items-center",
                         "rounded-full",
-                        "transition-all duration-200",
+                        "transition-all duration-300 ease-in-out",
                         isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground border border-border",
                         "hover:shadow-md",
                         "overflow-hidden"
@@ -405,7 +405,7 @@ const TasksPage = () => {
                           setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
                         }}
                         className={cn(
-                          "flex items-center gap-1.5 pl-3 pr-2 py-1.5",
+                          "flex items-center gap-1.5 px-3 py-1.5",
                           "text-xs sm:text-sm font-medium",
                           "hover:opacity-80 transition-opacity",
                           getFocusRing()
@@ -417,10 +417,15 @@ const TasksPage = () => {
                         )}
                       </button>
 
-                      {/* Action button - only one visible at a time */}
-                      <div className="pr-1.5">
+                      {/* Action button container - grows/shrinks smoothly */}
+                      <div className={cn(
+                        "transition-all duration-300 ease-in-out overflow-hidden",
+                        isActive 
+                          ? "w-7 opacity-100" 
+                          : "w-0 group-hover:w-7 opacity-0 group-hover:opacity-100"
+                      )}>
                         {isActive ? (
-                          // Show X button when tag is active (to remove filter)
+                          // X button when tag is active (to remove filter)
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -428,8 +433,8 @@ const TasksPage = () => {
                             }}
                             className={cn(
                               "flex items-center justify-center",
-                              "w-5 h-5 rounded-full",
-                              "hover:bg-primary-foreground/20",
+                              "w-7 h-7",
+                              "hover:bg-primary-foreground/20 rounded-full",
                               "active:scale-90",
                               "transition-all duration-150",
                               getFocusRing()
@@ -440,7 +445,7 @@ const TasksPage = () => {
                             <X className="h-3.5 w-3.5" />
                           </button>
                         ) : (
-                          // Show delete button on hover when tag is inactive
+                          // Delete button on hover when tag is inactive
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -448,14 +453,11 @@ const TasksPage = () => {
                             }}
                             className={cn(
                               "flex items-center justify-center",
-                              "w-5 h-5 rounded-full",
-                              "opacity-0 group-hover:opacity-100",
-                              "hover:bg-destructive/20",
+                              "w-7 h-7",
+                              "hover:bg-destructive/20 rounded-full",
                               "active:scale-90",
                               "transition-all duration-150",
-                              getFocusRing(),
-                              // Always visible on mobile for better accessibility
-                              isMobile && "opacity-60"
+                              getFocusRing()
                             )}
                             aria-label={`Delete ${tag.name} tag`}
                             title="Delete tag"
