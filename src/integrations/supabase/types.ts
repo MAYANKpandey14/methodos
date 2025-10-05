@@ -294,6 +294,18 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_tag_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          color: string
+          created_at: string
+          id: string
+          last_used_at: string
+          name: string
+          usage_count: number
+          user_id: string
+        }[]
+      }
       normalize_tag_name: {
         Args: { tag_name: string }
         Returns: string

@@ -44,7 +44,7 @@ export const useTags = () => {
   });
 };
 
-// Fetch tags with usage statistics
+// Fetch tags with usage statistics using secure function
 export const useTagsWithStats = () => {
   const user = useAuthStore(state => state.user);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
@@ -54,11 +54,10 @@ export const useTagsWithStats = () => {
     queryFn: async () => {
       if (!user || !isAuthenticated) throw new Error('User not authenticated');
 
+      // Use the secure function instead of querying the view directly
+      // This enforces proper access control at the database level
       const { data, error } = await supabase
-        .from('tag_usage_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('usage_count', { ascending: false });
+        .rpc('get_user_tag_stats');
 
       if (error) throw error;
       return data as TagWithStats[];
