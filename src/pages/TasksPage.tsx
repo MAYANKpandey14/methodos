@@ -377,28 +377,26 @@ const TasksPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
                 <Label className="text-sm font-medium">Filter by tags:</Label>
                 <p className="text-xs text-muted-foreground">
-                  Click to filter • Hover to manage
+                  Click tag to filter
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {tagsWithStats.map((tag) => {
                   const isActive = filters.tags?.includes(tag.name);
                   return (
                     <div
                       key={tag.id}
-                      className="relative group"
+                      className={cn(
+                        "flex items-center gap-1",
+                        "rounded-full",
+                        "transition-all duration-200",
+                        isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground border border-border",
+                        "hover:shadow-md",
+                        "overflow-hidden"
+                      )}
                     >
-                      <Badge
-                        variant={isActive ? "default" : "outline"}
-                        className={cn(
-                          'cursor-pointer transition-all duration-300 ease-out',
-                          'min-h-[32px] sm:min-h-[36px]',
-                          'pl-3 pr-3',
-                          'hover:shadow-lg hover:-translate-y-0.5',
-                          'active:scale-95',
-                          getFocusRing(),
-                          isActive && 'ring-2 ring-primary/20'
-                        )}
+                      {/* Tag label - clickable area */}
+                      <button
                         onClick={() => {
                           const currentTags = filters.tags || [];
                           const newTags = currentTags.includes(tag.name)
@@ -406,23 +404,21 @@ const TasksPage = () => {
                             : [...currentTags, tag.name];
                           setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
                         }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5",
+                          "text-xs sm:text-sm font-medium",
+                          "hover:opacity-80 transition-opacity",
+                          getFocusRing()
+                        )}
                       >
-                        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
-                          {tag.name}
-                          {tag.usage_count > 0 && (
-                            <span className="text-[10px] sm:text-xs opacity-60 font-normal">({tag.usage_count})</span>
-                          )}
-                        </span>
-                      </Badge>
-                      
-                      {/* Action buttons - appear on hover */}
-                      <div className={cn(
-                        "absolute -top-2 -right-2 flex items-center gap-1",
-                        "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100",
-                        "transition-all duration-200 ease-out",
-                        "pointer-events-none group-hover:pointer-events-auto",
-                        isMobile && "opacity-100 scale-100 pointer-events-auto"
-                      )}>
+                        {tag.name}
+                        {tag.usage_count > 0 && (
+                          <span className="text-[10px] sm:text-xs opacity-60">({tag.usage_count})</span>
+                        )}
+                      </button>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center pr-1">
                         {isActive && (
                           <button
                             onClick={(e) => {
@@ -431,18 +427,16 @@ const TasksPage = () => {
                             }}
                             className={cn(
                               "flex items-center justify-center",
-                              "w-6 h-6 sm:w-7 sm:h-7",
-                              "bg-background border-2 border-primary/50",
-                              "rounded-full shadow-md",
-                              "hover:bg-primary hover:border-primary hover:text-primary-foreground",
+                              "w-6 h-6 rounded-full",
+                              "hover:bg-primary-foreground/20",
                               "active:scale-90",
-                              "transition-all duration-200",
-                              "touch-manipulation"
+                              "transition-all duration-150",
+                              getFocusRing()
                             )}
                             aria-label={`Remove ${tag.name} filter`}
                             title="Remove filter"
                           >
-                            <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                         <button
@@ -452,18 +446,18 @@ const TasksPage = () => {
                           }}
                           className={cn(
                             "flex items-center justify-center",
-                            "w-6 h-6 sm:w-7 sm:h-7",
-                            "bg-background border-2 border-destructive/50",
-                            "rounded-full shadow-md",
-                            "hover:bg-destructive hover:border-destructive hover:text-destructive-foreground",
+                            "w-6 h-6 rounded-full",
+                            isActive 
+                              ? "hover:bg-primary-foreground/20" 
+                              : "hover:bg-destructive/20",
                             "active:scale-90",
-                            "transition-all duration-200",
-                            "touch-manipulation"
+                            "transition-all duration-150",
+                            getFocusRing()
                           )}
                           aria-label={`Delete ${tag.name} tag`}
                           title="Delete tag"
                         >
-                          <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
