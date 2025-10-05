@@ -377,45 +377,52 @@ const TasksPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
                 <Label className="text-sm font-medium">Filter by tags:</Label>
                 <p className="text-xs text-muted-foreground">
-                  Click to filter • Hover for options
+                  Click to filter • Hover to manage
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {tagsWithStats.map((tag) => {
                   const isActive = filters.tags?.includes(tag.name);
                   return (
-                    <Badge
+                    <div
                       key={tag.id}
-                      variant={isActive ? "default" : "outline"}
-                      className={cn(
-                        'cursor-pointer transition-all duration-200 touch-target group relative',
-                        'min-h-[28px] sm:min-h-[32px]',
-                        'pl-2.5 pr-8 sm:pr-10',
-                        'hover:shadow-md hover:scale-105',
-                        getFocusRing(),
-                        isActive ? 'pr-14 sm:pr-16' : 'pr-8 sm:pr-10'
-                      )}
-                      onClick={() => {
-                        const currentTags = filters.tags || [];
-                        const newTags = currentTags.includes(tag.name)
-                          ? currentTags.filter(t => t !== tag.name)
-                          : [...currentTags, tag.name];
-                        setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setTagToDelete({ id: tag.id, name: tag.name });
-                      }}
+                      className="relative group"
                     >
-                      <span className="flex items-center gap-1.5 text-xs sm:text-sm">
-                        {tag.name}
-                        {tag.usage_count > 0 && (
-                          <span className="text-[10px] sm:text-xs opacity-60">({tag.usage_count})</span>
+                      <Badge
+                        variant={isActive ? "default" : "outline"}
+                        className={cn(
+                          'cursor-pointer transition-all duration-300 ease-out',
+                          'min-h-[32px] sm:min-h-[36px]',
+                          'pl-3 pr-3',
+                          'hover:shadow-lg hover:-translate-y-0.5',
+                          'active:scale-95',
+                          getFocusRing(),
+                          isActive && 'ring-2 ring-primary/20'
                         )}
-                      </span>
+                        onClick={() => {
+                          const currentTags = filters.tags || [];
+                          const newTags = currentTags.includes(tag.name)
+                            ? currentTags.filter(t => t !== tag.name)
+                            : [...currentTags, tag.name];
+                          setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
+                        }}
+                      >
+                        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+                          {tag.name}
+                          {tag.usage_count > 0 && (
+                            <span className="text-[10px] sm:text-xs opacity-60 font-normal">({tag.usage_count})</span>
+                          )}
+                        </span>
+                      </Badge>
                       
-                      {/* Action buttons container */}
-                      <div className="absolute right-0.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                      {/* Action buttons - appear on hover */}
+                      <div className={cn(
+                        "absolute -top-2 -right-2 flex items-center gap-1",
+                        "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100",
+                        "transition-all duration-200 ease-out",
+                        "pointer-events-none group-hover:pointer-events-auto",
+                        isMobile && "opacity-100 scale-100 pointer-events-auto"
+                      )}>
                         {isActive && (
                           <button
                             onClick={(e) => {
@@ -423,15 +430,19 @@ const TasksPage = () => {
                               handleRemoveTagFilter(tag.name);
                             }}
                             className={cn(
-                              "opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200",
-                              "hover:bg-destructive/20 active:bg-destructive/30 rounded-sm p-1",
-                              "touch-manipulation",
-                              // Show on mobile when tag is active
-                              isMobile && "opacity-70"
+                              "flex items-center justify-center",
+                              "w-6 h-6 sm:w-7 sm:h-7",
+                              "bg-background border-2 border-primary/50",
+                              "rounded-full shadow-md",
+                              "hover:bg-primary hover:border-primary hover:text-primary-foreground",
+                              "active:scale-90",
+                              "transition-all duration-200",
+                              "touch-manipulation"
                             )}
                             aria-label={`Remove ${tag.name} filter`}
+                            title="Remove filter"
                           >
-                            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </button>
                         )}
                         <button
@@ -440,18 +451,22 @@ const TasksPage = () => {
                             setTagToDelete({ id: tag.id, name: tag.name });
                           }}
                           className={cn(
-                            "opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200",
-                            "hover:bg-destructive hover:text-destructive-foreground active:bg-destructive/80 rounded-sm p-1",
-                            "touch-manipulation",
-                            // Show on mobile when tag is active
-                            isMobile && "opacity-70"
+                            "flex items-center justify-center",
+                            "w-6 h-6 sm:w-7 sm:h-7",
+                            "bg-background border-2 border-destructive/50",
+                            "rounded-full shadow-md",
+                            "hover:bg-destructive hover:border-destructive hover:text-destructive-foreground",
+                            "active:scale-90",
+                            "transition-all duration-200",
+                            "touch-manipulation"
                           )}
                           aria-label={`Delete ${tag.name} tag`}
+                          title="Delete tag"
                         >
                           <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         </button>
                       </div>
-                    </Badge>
+                    </div>
                   );
                 })}
               </div>
