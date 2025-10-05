@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { useUpdateTask } from '@/hooks/useTasks';
-import { useTags } from '@/hooks/useTags';
+import { useTagsWithStats } from '@/hooks/useTags';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -26,10 +26,16 @@ interface TaskEditDialogProps {
 }
 
 const TaskEditDialog = ({ task, open, onOpenChange }: TaskEditDialogProps) => {
-  const { data: tags = [] } = useTags();
+  const { data: tagsWithStats = [] } = useTagsWithStats();
   const updateTaskMutation = useUpdateTask();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  // Get recommended tags (top 5 most used)
+  const recommendedTags = tagsWithStats
+    .filter(tag => tag.usage_count > 0)
+    .slice(0, 5)
+    .map(tag => tag.name);
 
   const [editedTask, setEditedTask] = useState({
     title: task.title,
@@ -201,7 +207,34 @@ const TaskEditDialog = ({ task, open, onOpenChange }: TaskEditDialogProps) => {
           
           <div>
             <Label htmlFor="edit-tags">Tags</Label>
-            <div className="flex space-x-2 mt-1">
+            {recommendedTags.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  Recommended (most used):
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {recommendedTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className={cn(
+                        'cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground transition-colors',
+                        editedTask.tags.includes(tag) && 'bg-primary text-primary-foreground'
+                      )}
+                      onClick={() => {
+                        if (!editedTask.tags.includes(tag)) {
+                          setEditedTask(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+                        }
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex space-x-2 mt-3">
               <Input
                 id="edit-tags"
                 value={newTag}

@@ -10,6 +10,18 @@ interface Tag {
   color: string;
 }
 
+interface TagWithStats extends Tag {
+  usage_count: number;
+  last_used_at: string | null;
+}
+
+// Normalize tag name to match database function (capitalize first letter)
+const normalizeTagName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+};
+
 export const useTags = () => {
   const user = useAuthStore(state => state.user);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
@@ -32,6 +44,29 @@ export const useTags = () => {
   });
 };
 
+// Fetch tags with usage statistics
+export const useTagsWithStats = () => {
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  
+  return useQuery({
+    queryKey: ['tags-stats', user?.id],
+    queryFn: async () => {
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('tag_usage_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('usage_count', { ascending: false });
+
+      if (error) throw error;
+      return data as TagWithStats[];
+    },
+    enabled: !!user && isAuthenticated,
+  });
+};
+
 export const useCreateTag = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore(state => state.user);
@@ -49,6 +84,9 @@ export const useCreateTag = () => {
         throw new Error(nameValidation.error);
       }
 
+      // Normalize the tag name (capitalize first letter)
+      const normalizedName = normalizeTagName(sanitizedName);
+
       // Validate color if provided
       const color = tagData.color || '#3B82F6';
       if (!/^#[0-9A-F]{6}$/i.test(color)) {
@@ -59,17 +97,50 @@ export const useCreateTag = () => {
         .from('tags')
         .insert({
           user_id: user.id,
-          name: sanitizedName,
+          name: normalizedName,
           color: color
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Check for unique constraint violation
+        if (error.code === '23505') {
+          throw new Error('Tag already exists (case-insensitive)');
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+    },
+  });
+};
+
+// Delete a tag
+export const useDeleteTag = () => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
+  return useMutation({
+    mutationFn: async (tagId: string) => {
+      if (!user || !isAuthenticated) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('tags')
+        .delete()
+        .eq('id', tagId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tags-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 };

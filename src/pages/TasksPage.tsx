@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTasks, useCreateTask } from '../hooks/useTasks';
-import { useTags } from '../hooks/useTags';
+import { useTagsWithStats, useDeleteTag } from '../hooks/useTags';
 import { useTasksStore } from '../stores/tasksStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useMediaQuery';
@@ -14,7 +14,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Search, Calendar as CalendarIcon, Loader2, X } from 'lucide-react';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
+import { Plus, Search, Calendar as CalendarIcon, Loader2, X, Trash2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -30,9 +40,12 @@ const TasksPage = () => {
   // Use debounced search term for actual filtering
   const searchFilters = { ...filters, search: debouncedSearchTerm || undefined };
   const { data: tasks = [], isLoading: tasksLoading } = useTasks(searchFilters);
-  const { data: tags = [] } = useTags();
+  const { data: tagsWithStats = [] } = useTagsWithStats();
   const createTaskMutation = useCreateTask();
+  const deleteTagMutation = useDeleteTag();
   const { toast } = useToast();
+  
+  const [tagToDelete, setTagToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
@@ -119,7 +132,32 @@ const TasksPage = () => {
     setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
   };
 
-  const allTags = Array.from(new Set(tags.map(tag => tag.name)));
+  const handleDeleteTag = async () => {
+    if (!tagToDelete) return;
+    
+    try {
+      await deleteTagMutation.mutateAsync(tagToDelete.id);
+      toast({
+        title: 'Tag deleted',
+        description: `Tag "${tagToDelete.name}" has been deleted.`,
+      });
+      setTagToDelete(null);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete tag.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Get recommended tags (top 5 most used)
+  const recommendedTags = tagsWithStats
+    .filter(tag => tag.usage_count > 0)
+    .slice(0, 5)
+    .map(tag => tag.name);
+
+  const allTags = Array.from(new Set(tagsWithStats.map(tag => tag.name)));
 
   if (tasksLoading) {
     return (
@@ -227,7 +265,34 @@ const TasksPage = () => {
               </div>
               <div>
                 <Label htmlFor="tags">Tags</Label>
-                <div className="flex space-x-2 mt-1">
+                {recommendedTags.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      Recommended (most used):
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recommendedTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className={cn(
+                            'cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground transition-colors',
+                            newTask.tags.includes(tag) && 'bg-primary text-primary-foreground'
+                          )}
+                          onClick={() => {
+                            if (!newTask.tags.includes(tag)) {
+                              setNewTask(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+                            }
+                          }}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex space-x-2 mt-3">
                   <Input
                     id="tags"
                     value={newTag}
@@ -309,40 +374,67 @@ const TasksPage = () => {
           </div>
           {allTags.length > 0 && (
             <div>
-              <Label className="text-sm font-medium">Filter by tags:</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {allTags.map((tag) => {
-                  const isActive = filters.tags?.includes(tag);
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Filter by tags:</Label>
+                <p className="text-xs text-muted-foreground">
+                  Click to filter • Right-click to delete
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tagsWithStats.map((tag) => {
+                  const isActive = filters.tags?.includes(tag.name);
                   return (
                     <Badge
-                      key={tag}
+                      key={tag.id}
                       variant={isActive ? "default" : "outline"}
                       className={cn(
                         'cursor-pointer transition-colors touch-target group relative',
                         getFocusRing(),
-                        isActive && 'pr-6'
+                        isActive && 'pr-12'
                       )}
                       onClick={() => {
                         const currentTags = filters.tags || [];
-                        const newTags = currentTags.includes(tag)
-                          ? currentTags.filter(t => t !== tag)
-                          : [...currentTags, tag];
+                        const newTags = currentTags.includes(tag.name)
+                          ? currentTags.filter(t => t !== tag.name)
+                          : [...currentTags, tag.name];
                         setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
                       }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setTagToDelete({ id: tag.id, name: tag.name });
+                      }}
                     >
-                      {tag}
+                      <span className="flex items-center gap-1.5">
+                        {tag.name}
+                        {tag.usage_count > 0 && (
+                          <span className="text-xs opacity-60">({tag.usage_count})</span>
+                        )}
+                      </span>
                       {isActive && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRemoveTagFilter(tag);
+                            handleRemoveTagFilter(tag.name);
                           }}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-full p-0.5"
-                          aria-label={`Remove ${tag} filter`}
+                          className="absolute right-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-full p-0.5"
+                          aria-label={`Remove ${tag.name} filter`}
                         >
                           <X className="h-3 w-3" />
                         </button>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTagToDelete({ id: tag.id, name: tag.name });
+                        }}
+                        className={cn(
+                          "absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive rounded-full p-0.5",
+                          isActive && "right-1"
+                        )}
+                        aria-label={`Delete ${tag.name} tag`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </Badge>
                   );
                 })}
@@ -366,6 +458,27 @@ const TasksPage = () => {
           ))
         )}
       </div>
+
+      {/* Delete Tag Confirmation Dialog */}
+      <AlertDialog open={!!tagToDelete} onOpenChange={() => setTagToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the tag "{tagToDelete?.name}"? This will remove it from all tasks but won't delete the tasks themselves.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTag}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
