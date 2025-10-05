@@ -60,20 +60,18 @@ const EmailVerificationPage = () => {
   }, [navigate, toast]);
 
   useEffect(() => {
-    // Get email from URL params or localStorage
+    // Security: Only get email from URL params, cleanup any localStorage entries
     const emailParam = searchParams.get('email');
-    const storedEmail = localStorage.getItem('pendingVerificationEmail');
     
     if (emailParam) {
       setEmail(emailParam);
-      localStorage.setItem('pendingVerificationEmail', emailParam);
-    } else if (storedEmail) {
-      setEmail(storedEmail);
     }
+    
+    // Security: Clean up any old email data from localStorage
+    localStorage.removeItem('pendingVerificationEmail');
 
     // If user is already authenticated with confirmed email, redirect to dashboard
     if (isAuthenticated && user?.email_confirmed_at) {
-      localStorage.removeItem('pendingVerificationEmail');
       navigate('/');
       toast({
         title: 'Welcome to FocusFlow!',

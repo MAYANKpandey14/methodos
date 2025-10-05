@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/ThemeToggle';
+import { validatePasswordStrength } from '@/utils/security';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -18,28 +19,6 @@ const LoginPage = () => {
   const { signIn, resetPassword, loading } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-    const errors = [];
-    
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
-    }
-    if (!/\d/.test(password)) {
-      errors.push('Password must contain at least one number');
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Password must contain at least one special character');
-    }
-    
-    return { isValid: errors.length === 0, errors };
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +33,8 @@ const LoginPage = () => {
       return;
     }
 
-    // Validate password strength
-    const passwordValidation = validatePassword(password);
+    // Validate password strength using centralized security function
+    const passwordValidation = validatePasswordStrength(password);
     if (!passwordValidation.isValid) {
       toast({
         title: 'Weak Password',

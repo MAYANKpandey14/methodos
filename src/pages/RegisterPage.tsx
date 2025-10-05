@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/ThemeToggle';
-import { sanitizeInput, validateEmail } from '@/utils/security';
+import { sanitizeInput, validateEmail, validatePasswordStrength } from '@/utils/security';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
@@ -49,29 +49,8 @@ const RegisterPage = () => {
       return;
     }
 
-    // Enhanced password validation to match security requirements
-    const passwordValidation = {
-      isValid: true,
-      errors: [] as string[]
-    };
-    
-    if (sanitizedPassword.length < 8) {
-      passwordValidation.errors.push('Password must be at least 8 characters long');
-    }
-    if (!/[A-Z]/.test(sanitizedPassword)) {
-      passwordValidation.errors.push('Password must contain at least one uppercase letter');
-    }
-    if (!/[a-z]/.test(sanitizedPassword)) {
-      passwordValidation.errors.push('Password must contain at least one lowercase letter');
-    }
-    if (!/[0-9]/.test(sanitizedPassword)) {
-      passwordValidation.errors.push('Password must contain at least one number');
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(sanitizedPassword)) {
-      passwordValidation.errors.push('Password must contain at least one special character');
-    }
-    
-    passwordValidation.isValid = passwordValidation.errors.length === 0;
+    // Enhanced password validation using centralized security function
+    const passwordValidation = validatePasswordStrength(sanitizedPassword);
     
     if (!passwordValidation.isValid) {
       toast({
@@ -91,8 +70,7 @@ const RegisterPage = () => {
         variant: 'destructive',
       });
     } else {
-      // Store email for verification page and redirect
-      localStorage.setItem('pendingVerificationEmail', sanitizedEmail);
+      // Security: Pass email via URL only, not localStorage
       navigate(`/verify-email?email=${encodeURIComponent(sanitizedEmail)}`);
       toast({
         title: 'Account created!',

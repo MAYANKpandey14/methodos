@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/ThemeToggle';
-import { sanitizeInput } from '@/utils/security';
+import { sanitizeInput, validatePasswordStrength } from '@/utils/security';
 
 // Security: Whitelist of allowed redirect URLs after password reset
 const ALLOWED_REDIRECT_URLS = [
@@ -15,28 +15,6 @@ const ALLOWED_REDIRECT_URLS = [
   `${window.location.origin}/login`,
   `${window.location.origin}/dashboard`
 ];
-
-const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
-  }
-  if (!/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-  if (!/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-  if (!/[0-9]/.test(password)) {
-    errors.push('Password must contain at least one number');
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('Password must contain at least one special character');
-  }
-  
-  return { isValid: errors.length === 0, errors };
-};
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -110,8 +88,8 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    // Security: Enhanced password validation
-    const passwordValidation = validatePassword(sanitizedPassword);
+    // Security: Enhanced password validation using centralized function
+    const passwordValidation = validatePasswordStrength(sanitizedPassword);
     if (!passwordValidation.isValid) {
       toast({
         title: 'Password Requirements Not Met',

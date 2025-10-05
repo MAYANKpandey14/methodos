@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { validatePasswordStrength } from '@/utils/security';
 
 // Define the shape of a user profile
 interface Profile {
@@ -127,8 +128,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!isValidEmail(sanitizedEmail)) {
         throw new Error('Invalid email format');
       }
-      if (password.length < 8) {
-        throw new Error('Password must be at least 8 characters');
+      
+      // Use centralized password validation
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.errors[0]);
       }
 
       const { error } = await supabase.auth.signInWithPassword({
@@ -157,8 +161,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!isValidEmail(sanitizedEmail)) {
         throw new Error('Invalid email format');
       }
-      if (password.length < 8) {
-        throw new Error('Password must be at least 8 characters long.');
+      
+      // Use centralized password validation
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.errors[0]);
       }
 
       const { error } = await supabase.auth.signUp({
