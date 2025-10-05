@@ -377,7 +377,7 @@ const TasksPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
                 <Label className="text-sm font-medium">Filter by tags:</Label>
                 <p className="text-xs text-muted-foreground">
-                  Click tag to filter
+                  Click to filter • Hover to delete
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -387,7 +387,7 @@ const TasksPage = () => {
                     <div
                       key={tag.id}
                       className={cn(
-                        "flex items-center gap-1",
+                        "group flex items-center gap-0.5",
                         "rounded-full",
                         "transition-all duration-200",
                         isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground border border-border",
@@ -405,7 +405,7 @@ const TasksPage = () => {
                           setFilters({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
                         }}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5",
+                          "flex items-center gap-1.5 pl-3 pr-2 py-1.5",
                           "text-xs sm:text-sm font-medium",
                           "hover:opacity-80 transition-opacity",
                           getFocusRing()
@@ -417,9 +417,10 @@ const TasksPage = () => {
                         )}
                       </button>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center pr-1">
-                        {isActive && (
+                      {/* Action button - only one visible at a time */}
+                      <div className="pr-1.5">
+                        {isActive ? (
+                          // Show X button when tag is active (to remove filter)
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -427,7 +428,7 @@ const TasksPage = () => {
                             }}
                             className={cn(
                               "flex items-center justify-center",
-                              "w-6 h-6 rounded-full",
+                              "w-5 h-5 rounded-full",
                               "hover:bg-primary-foreground/20",
                               "active:scale-90",
                               "transition-all duration-150",
@@ -438,27 +439,30 @@ const TasksPage = () => {
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
+                        ) : (
+                          // Show delete button on hover when tag is inactive
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTagToDelete({ id: tag.id, name: tag.name });
+                            }}
+                            className={cn(
+                              "flex items-center justify-center",
+                              "w-5 h-5 rounded-full",
+                              "opacity-0 group-hover:opacity-100",
+                              "hover:bg-destructive/20",
+                              "active:scale-90",
+                              "transition-all duration-150",
+                              getFocusRing(),
+                              // Always visible on mobile for better accessibility
+                              isMobile && "opacity-60"
+                            )}
+                            aria-label={`Delete ${tag.name} tag`}
+                            title="Delete tag"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTagToDelete({ id: tag.id, name: tag.name });
-                          }}
-                          className={cn(
-                            "flex items-center justify-center",
-                            "w-6 h-6 rounded-full",
-                            isActive 
-                              ? "hover:bg-primary-foreground/20" 
-                              : "hover:bg-destructive/20",
-                            "active:scale-90",
-                            "transition-all duration-150",
-                            getFocusRing()
-                          )}
-                          aria-label={`Delete ${tag.name} tag`}
-                          title="Delete tag"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                     </div>
                   );
