@@ -156,7 +156,7 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         <Card className="w-full">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Sign in to FocusFlow</CardTitle>
+            <CardTitle className="text-2xl font-bold">Sign in to MethodOS</CardTitle>
             <CardDescription>
               Enter your credentials to access your productivity dashboard
             </CardDescription>

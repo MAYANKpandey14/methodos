@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the security measures, best practices, and policies implemented in the FocusFlow application to protect user data and ensure secure operation.
+This document outlines the security measures, best practices, and policies implemented in the MethodOS application to protect user data and ensure secure operation.
 
 ## Password Requirements
 

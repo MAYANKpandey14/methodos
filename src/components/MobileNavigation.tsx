@@ -52,7 +52,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onTo
       <SheetContent side="left" className="w-64 p-0">
         <div className="flex flex-col h-full">
           <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-foreground">FocusFlow</h2>
+            <h2 className="text-xl font-bold text-foreground">MethodOS</h2>
           </div>
           
           <nav className="flex-1 p-4">

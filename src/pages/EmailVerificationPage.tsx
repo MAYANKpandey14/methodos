@@ -39,7 +39,7 @@ const EmailVerificationPage = () => {
             localStorage.removeItem('pendingVerificationEmail');
             toast({
               title: 'Email verified successfully!',
-              description: 'Welcome to FocusFlow! Your account is now active.',
+              description: 'Welcome to MethodOS! Your account is now active.',
             });
             navigate('/');
           }
@@ -74,7 +74,7 @@ const EmailVerificationPage = () => {
     if (isAuthenticated && user?.email_confirmed_at) {
       navigate('/');
       toast({
-        title: 'Welcome to FocusFlow!',
+        title: 'Welcome to MethodOS!',
         description: 'Your email has been verified successfully.',
       });
     }

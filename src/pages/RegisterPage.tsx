@@ -88,7 +88,7 @@ const RegisterPage = () => {
         </div>
         <Card className="w-full">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Join FocusFlow</CardTitle>
+            <CardTitle className="text-2xl font-bold">Join MethodOS</CardTitle>
             <CardDescription>
               Create your account to start boosting your productivity
             </CardDescription>
