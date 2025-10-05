@@ -374,10 +374,10 @@ const TasksPage = () => {
           </div>
           {allTags.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
                 <Label className="text-sm font-medium">Filter by tags:</Label>
                 <p className="text-xs text-muted-foreground">
-                  Click to filter • Right-click to delete
+                  Click to filter • Hover for options
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -388,9 +388,12 @@ const TasksPage = () => {
                       key={tag.id}
                       variant={isActive ? "default" : "outline"}
                       className={cn(
-                        'cursor-pointer transition-colors touch-target group relative',
+                        'cursor-pointer transition-all duration-200 touch-target group relative',
+                        'min-h-[28px] sm:min-h-[32px]',
+                        'pl-2.5 pr-8 sm:pr-10',
+                        'hover:shadow-md hover:scale-105',
                         getFocusRing(),
-                        isActive && 'pr-12'
+                        isActive ? 'pr-14 sm:pr-16' : 'pr-8 sm:pr-10'
                       )}
                       onClick={() => {
                         const currentTags = filters.tags || [];
@@ -404,37 +407,50 @@ const TasksPage = () => {
                         setTagToDelete({ id: tag.id, name: tag.name });
                       }}
                     >
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 text-xs sm:text-sm">
                         {tag.name}
                         {tag.usage_count > 0 && (
-                          <span className="text-xs opacity-60">({tag.usage_count})</span>
+                          <span className="text-[10px] sm:text-xs opacity-60">({tag.usage_count})</span>
                         )}
                       </span>
-                      {isActive && (
+                      
+                      {/* Action buttons container */}
+                      <div className="absolute right-0.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                        {isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveTagFilter(tag.name);
+                            }}
+                            className={cn(
+                              "opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200",
+                              "hover:bg-destructive/20 active:bg-destructive/30 rounded-sm p-1",
+                              "touch-manipulation",
+                              // Show on mobile when tag is active
+                              isMobile && "opacity-70"
+                            )}
+                            aria-label={`Remove ${tag.name} filter`}
+                          >
+                            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRemoveTagFilter(tag.name);
+                            setTagToDelete({ id: tag.id, name: tag.name });
                           }}
-                          className="absolute right-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-full p-0.5"
-                          aria-label={`Remove ${tag.name} filter`}
+                          className={cn(
+                            "opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200",
+                            "hover:bg-destructive hover:text-destructive-foreground active:bg-destructive/80 rounded-sm p-1",
+                            "touch-manipulation",
+                            // Show on mobile when tag is active
+                            isMobile && "opacity-70"
+                          )}
+                          aria-label={`Delete ${tag.name} tag`}
                         >
-                          <X className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTagToDelete({ id: tag.id, name: tag.name });
-                        }}
-                        className={cn(
-                          "absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive rounded-full p-0.5",
-                          isActive && "right-1"
-                        )}
-                        aria-label={`Delete ${tag.name} tag`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                      </div>
                     </Badge>
                   );
                 })}
