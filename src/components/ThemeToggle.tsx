@@ -39,13 +39,17 @@ const ThemeToggle = ({ className }: ThemeToggleProps) => {
       size="icon"
       onClick={toggleTheme}
       className={cn(
-        'h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors',
+        'h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground transition-all duration-200',
+        '[&_svg]:transition-all [&_svg]:duration-300 [&_svg]:ease-out',
+        'hover:[&_svg]:rotate-12 hover:[&_svg]:scale-110',
         className
       )}
       aria-label={`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'} theme`}
       title={getLabel()}
     >
-      {getIcon()}
+      <span className="relative inline-flex">
+        {getIcon()}
+      </span>
     </Button>
   );
 };

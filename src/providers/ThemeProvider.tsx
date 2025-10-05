@@ -83,8 +83,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const applyTheme = (themeValue: Theme) => {
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-
+    
     // Determine actual theme to apply
     let actualTheme: 'light' | 'dark';
     if (themeValue === 'system') {
@@ -93,14 +92,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       actualTheme = themeValue;
     }
 
-    root.classList.add(actualTheme);
-
-    // Add smooth transition if motion is not reduced
-    if (!prefersReducedMotion()) {
-      root.style.transition = 'color 0.2s ease, background-color 0.2s ease';
-      setTimeout(() => {
-        root.style.transition = '';
-      }, 200);
+    // Use view transitions API if supported for ultra-smooth transitions
+    if (!prefersReducedMotion() && document.startViewTransition) {
+      document.startViewTransition(() => {
+        root.classList.remove('light', 'dark');
+        root.classList.add(actualTheme);
+      });
+    } else {
+      // Fallback: instant class switching with CSS transition
+      root.classList.remove('light', 'dark');
+      root.classList.add(actualTheme);
     }
 
     // Update meta theme-color for mobile browsers
