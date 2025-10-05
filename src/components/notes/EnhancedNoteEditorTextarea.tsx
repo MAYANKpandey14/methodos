@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect } from 'react';
-import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EnhancedNoteEditorTextareaProps {
   content: string;
@@ -17,19 +17,26 @@ export function EnhancedNoteEditorTextarea({
   scrollSyncTarget 
 }: EnhancedNoteEditorTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Handle scroll events for synchronization
-  const handleScroll = useCallback((event: React.UIEvent<HTMLTextAreaElement>) => {
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     if (onScroll) {
-      const target = event.target as HTMLTextAreaElement;
-      onScroll(target.scrollTop, target.scrollHeight);
+      const viewport = event.target as HTMLDivElement;
+      const scrollElement = viewport.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
+      if (scrollElement) {
+        onScroll(scrollElement.scrollTop, scrollElement.scrollHeight);
+      }
     }
   }, [onScroll]);
 
   // Sync scroll position from external source
   useEffect(() => {
-    if (scrollSyncTarget !== undefined && textareaRef.current) {
-      textareaRef.current.scrollTop = scrollSyncTarget * textareaRef.current.scrollHeight;
+    if (scrollSyncTarget !== undefined && scrollAreaRef.current) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollSyncTarget * scrollElement.scrollHeight;
+      }
     }
   }, [scrollSyncTarget]);
 
@@ -270,18 +277,23 @@ export function EnhancedNoteEditorTextarea({
   }, [insertMarkdownAtSelection, insertText, content]);
 
   return (
-    <div className="h-full flex flex-col">
-      <Textarea
-        ref={textareaRef}
-        value={content}
-        onChange={(e) => onContentChange(e.target.value)}
-        onSelect={handleSelectionChange}
-        onKeyDown={handleKeyDown}
-        onScroll={handleScroll}
-        placeholder="Start writing your note..."
-        className="h-full resize-none border-0 rounded-none shadow-none focus-visible:ring-0 text-sm leading-relaxed font-mono"
-        style={{ minHeight: '100%' }}
-      />
-    </div>
+    <ScrollArea 
+      ref={scrollAreaRef}
+      className="h-full" 
+      onScrollCapture={handleScroll}
+    >
+      <div className="min-h-full p-4">
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => onContentChange(e.target.value)}
+          onSelect={handleSelectionChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Start writing your note..."
+          className="w-full min-h-[calc(100vh-300px)] resize-none border-0 bg-transparent focus:outline-none focus:ring-0 text-sm leading-relaxed font-mono"
+          style={{ minHeight: 'calc(100vh - 300px)' }}
+        />
+      </div>
+    </ScrollArea>
   );
 }

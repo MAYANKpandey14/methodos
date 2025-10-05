@@ -271,51 +271,59 @@ export class ExportService {
               h3 { 
                 font-size: 14pt; 
               }
-                p, li {
-                  break-inside: avoid;
-                  margin-bottom: 0.5em;
-                }
-                code {
-                  background: #f5f5f5;
-                  padding: 2px 4px;
-                  border-radius: 3px;
-                  font-family: 'Courier New', monospace;
-                }
-                pre {
-                  background: #f5f5f5;
-                  padding: 1em;
-                  border-radius: 5px;
-                  overflow-wrap: break-word;
-                  white-space: pre-wrap;
-                }
-                blockquote {
-                  border-left: 4px solid #ddd;
-                  padding-left: 1em;
-                  margin-left: 0;
-                  font-style: italic;
-                }
-                table {
-                  border-collapse: collapse;
-                  width: 100%;
-                  margin: 1em 0;
-                }
-                th, td {
-                  border: 1px solid #ddd;
-                  padding: 8px;
-                  text-align: left;
-                }
-                th {
-                  background: #f5f5f5;
-                  font-weight: bold;
-                }
-                img {
-                  max-width: 100%;
-                  height: auto;
-                  break-inside: avoid;
-                }
-                .page-break {
-                  page-break-before: always;
-                }
+              
+              p, li {
+                break-inside: avoid;
+                margin-bottom: 0.5em;
+              }
+              
+              code {
+                background: #f5f5f5;
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+              }
+              
+              pre {
+                background: #f5f5f5;
+                padding: 1em;
+                border-radius: 5px;
+                overflow-wrap: break-word;
+                white-space: pre-wrap;
+              }
+              
+              blockquote {
+                border-left: 4px solid #ddd;
+                padding-left: 1em;
+                margin-left: 0;
+                font-style: italic;
+              }
+              
+              table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 1em 0;
+              }
+              
+              th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+              }
+              
+              th {
+                background: #f5f5f5;
+                font-weight: bold;
+              }
+              
+              img {
+                max-width: 100%;
+                height: auto;
+                break-inside: avoid;
+              }
+              
+              .page-break {
+                page-break-before: always;
               }
             </style>
           </head>

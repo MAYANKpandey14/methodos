@@ -41,23 +41,37 @@ export function ImageUploadHandler({ onImageInsert, onClose, className }: ImageU
         }));
       }, 100);
 
-      // Create object URL for local preview
-      const imageUrl = URL.createObjectURL(compressedFile);
+      // Convert image to base64 data URL for permanent storage in markdown
+      const reader = new FileReader();
       
-      // In a real app, you would upload to a storage service here
-      // For now, we'll use the local object URL
-      const imageMarkdown = `![${file.name}](${imageUrl})`;
+      reader.onload = (e) => {
+        clearInterval(progressInterval);
+        const base64Data = e.target?.result as string;
+        
+        // Create markdown with base64 embedded image
+        const imageMarkdown = `![${file.name}](${base64Data})`;
+        
+        setUploadState({ uploading: false, progress: 100 });
+        
+        // Insert the image markdown
+        onImageInsert(imageMarkdown);
+        
+        // Close the upload handler after a short delay
+        setTimeout(() => {
+          onClose();
+        }, 500);
+      };
       
-      clearInterval(progressInterval);
-      setUploadState({ uploading: false, progress: 100 });
+      reader.onerror = () => {
+        clearInterval(progressInterval);
+        setUploadState({ 
+          uploading: false, 
+          progress: 0, 
+          error: 'Failed to read image file' 
+        });
+      };
       
-      // Insert the image markdown
-      onImageInsert(imageMarkdown);
-      
-      // Close the upload handler after a short delay
-      setTimeout(() => {
-        onClose();
-      }, 500);
+      reader.readAsDataURL(compressedFile);
 
     } catch (error) {
       setUploadState({ 
