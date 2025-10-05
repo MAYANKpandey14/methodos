@@ -144,7 +144,7 @@ const Layout = () => {
                       'min-h-[48px] relative overflow-hidden group rounded-lg',
                       getFocusRing(),
                       isActive
-                        ? 'bg-primary/10 text-primary shadow-sm border-l-4 border-primary ml-0 mr-2'
+                        ? 'bg-primary/10 text-primary shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:shadow-sm hover:scale-[1.02]'
                     )}
                   >
