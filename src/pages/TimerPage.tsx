@@ -25,8 +25,13 @@ const TimerPage = () => {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showTaskCompleteDialog, setShowTaskCompleteDialog] = useState(false);
   const [taskToComplete, setTaskToComplete] = useState<any>(null);
+  const [sessionType, setSessionType] = useState<'work' | 'break'>('work');
+  const [completedPomodoros, setCompletedPomodoros] = useState(0);
 
   const workDuration = (profile?.pomodoro_duration || 25) * 60;
+  const shortBreakDuration = (profile?.short_break_duration || 5) * 60;
+  const longBreakDuration = (profile?.long_break_duration || 15) * 60;
+  const longBreakInterval = profile?.long_break_interval || 4;
   
   const {
     isRunning,
@@ -66,8 +71,30 @@ const TimerPage = () => {
     return ((workDuration - timeRemaining) / workDuration) * 100;
   };
 
+  const playCompletionSound = () => {
+    // Create a pleasant completion sound using Web Audio API
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  };
+
   const handleTimerComplete = async () => {
-    if (sessionId && selectedTask) {
+    // Play sound notification
+    playCompletionSound();
+
+    if (sessionType === 'work' && sessionId && selectedTask) {
       try {
         // Update session status
         await updateSessionMutation.mutateAsync({
@@ -78,11 +105,29 @@ const TimerPage = () => {
 
         // Increment completed pomodoros for the task
         const newCompletedPomodoros = selectedTask.completedPomodoros + 1;
+        const newSessionPomodoros = completedPomodoros + 1;
+        
         await updateTaskMutation.mutateAsync({
           id: selectedTask.id,
           updates: {
             completedPomodoros: newCompletedPomodoros
           }
+        });
+
+        setCompletedPomodoros(newSessionPomodoros);
+
+        // Show notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Work Session Complete! 🎉', {
+            body: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed. Time for a break!`,
+            icon: '/favicon.ico',
+            requireInteraction: true,
+          });
+        }
+
+        toast({
+          title: 'Work session completed!',
+          description: `Time for a ${newSessionPomodoros % longBreakInterval === 0 ? 'long' : 'short'} break.`,
         });
 
         // Check if all pomodoros are completed
@@ -91,17 +136,17 @@ const TimerPage = () => {
           setShowTaskCompleteDialog(true);
         }
 
-        // Show notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Pomodoro Complete!', {
-            body: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed for "${selectedTask.title}"`,
-            icon: '/favicon.ico',
-          });
-        }
+        // Auto-start break timer
+        const isLongBreak = newSessionPomodoros % longBreakInterval === 0;
+        const breakDuration = isLongBreak ? longBreakDuration : shortBreakDuration;
+        
+        setSessionType('break');
+        setDuration(breakDuration);
+        startTimer(sessionId + '-break', handleBreakComplete);
 
         toast({
-          title: 'Pomodoro completed!',
-          description: `${newCompletedPomodoros}/${selectedTask.estimatedPomodoros} pomodoros completed for "${selectedTask.title}"`,
+          title: `${isLongBreak ? 'Long' : 'Short'} break started!`,
+          description: `Relax for ${Math.round(breakDuration / 60)} minutes.`,
         });
       } catch (error: any) {
         console.error('Failed to update session:', error);
@@ -112,6 +157,30 @@ const TimerPage = () => {
         });
       }
     }
+  };
+
+  const handleBreakComplete = () => {
+    // Play sound notification
+    playCompletionSound();
+
+    // Show notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Break Complete! ☕', {
+        body: 'Ready to start another work session?',
+        icon: '/favicon.ico',
+        requireInteraction: true,
+      });
+    }
+
+    toast({
+      title: 'Break complete!',
+      description: 'Ready to start another work session?',
+    });
+
+    resetTimer();
+    setSessionType('work');
+    setSelectedTask(null);
+    setSelectedTaskId('');
   };
 
   const handleStart = async () => {
@@ -131,6 +200,8 @@ const TimerPage = () => {
       });
 
       setSelectedTask(task);
+      setSessionType('work');
+      setDuration(workDuration);
       startTimer(session.id, handleTimerComplete);
       
       toast({
@@ -193,8 +264,10 @@ const TimerPage = () => {
     }
 
     resetTimer();
+    setSessionType('work');
     setSelectedTask(null);
     setSelectedTaskId('');
+    setCompletedPomodoros(0);
   };
 
   const handleReset = async () => {
@@ -210,8 +283,10 @@ const TimerPage = () => {
     }
 
     resetTimer();
+    setSessionType('work');
     setSelectedTask(null);
     setSelectedTaskId('');
+    setCompletedPomodoros(0);
   };
 
   const handleMarkTaskComplete = async () => {
@@ -349,7 +424,11 @@ const TimerPage = () => {
                     {formatTime(timeRemaining)}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {sessionId ? (isRunning ? 'Focus Time' : 'Paused') : 'Ready to start'}
+                    {sessionId ? (
+                      sessionType === 'work' 
+                        ? (isRunning ? 'Focus Time' : 'Paused')
+                        : (isRunning ? 'Break Time' : 'Paused')
+                    ) : 'Ready to start'}
                   </div>
                 </div>
               </div>
