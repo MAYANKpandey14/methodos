@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,16 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signUp, signInWithGoogle, loading } = useAuthStore();
+  const { signUp, signInWithGoogle, loading, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already authenticated (e.g., after OAuth callback)
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleGoogleSignIn = async () => {
     const { error } = await signInWithGoogle();

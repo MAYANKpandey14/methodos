@@ -1,11 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
-import { PasswordStrength } from '@/components/ui/password-strength';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -16,9 +15,16 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
-  const { signIn, signInWithGoogle, resetPassword, loading } = useAuthStore();
+  const { signIn, signInWithGoogle, resetPassword, loading, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already authenticated (e.g., after OAuth callback)
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleGoogleSignIn = async () => {
     const result = await signInWithGoogle();
