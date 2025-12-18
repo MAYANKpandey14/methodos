@@ -88,35 +88,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * This should be called once when the application mounts.
    */
   initialize: () => {
+    // Set up auth state listener FIRST to avoid missing the OAuth callback session event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const isAuthenticated = isUserAuthenticated(session);
+
+      set({
+        user: session?.user ?? null,
+        session,
+        isAuthenticated,
+        loading: false,
+      });
+
+      if (event === 'SIGNED_IN' && isAuthenticated) {
+        // Defer any follow-up Supabase calls
+        setTimeout(() => {
+          get()._handleSignIn();
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        set({ profile: null });
+      }
+    });
+
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const isAuthenticated = isUserAuthenticated(session);
-      set({ 
-        user: session?.user ?? null, 
-        session, 
+      set({
+        user: session?.user ?? null,
+        session,
         isAuthenticated,
-        loading: false 
+        loading: false,
       });
       if (isAuthenticated) {
         get()._loadProfile();
       }
     });
 
-    supabase.auth.onAuthStateChange((event, session) => {
-      const isAuthenticated = isUserAuthenticated(session);
-      
-      set({ 
-        user: session?.user ?? null, 
-        session, 
-        isAuthenticated,
-        loading: false 
-      });
-
-      if (event === 'SIGNED_IN' && isAuthenticated) {
-        get()._handleSignIn();
-      } else if (event === 'SIGNED_OUT') {
-        set({ profile: null });
-      }
-    });
+    // Note: we intentionally don't store subscription in state; it's global for app lifetime.
+    // If you ever mount/unmount the whole app, this should be unsubscribed.
+    void subscription;
   },
 
   /**
@@ -158,7 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) throw error;
