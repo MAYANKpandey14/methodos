@@ -295,7 +295,7 @@ export type Database = {
     }
     Functions: {
       get_user_tag_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           color: string
           created_at: string
@@ -306,10 +306,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      normalize_tag_name: {
-        Args: { tag_name: string }
-        Returns: string
-      }
+      normalize_tag_name: { Args: { tag_name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
