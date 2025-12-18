@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import DashboardPage from "./pages/DashboardPage";
 import TasksPage from "./pages/TasksPage";
 import TimerPage from "./pages/TimerPage";
@@ -36,23 +37,18 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
-              <Route 
-                path="/login" 
-                element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} 
+              <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
               />
-              <Route 
-                path="/register" 
-                element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} 
+              <Route
+                path="/register"
+                element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />}
               />
-              <Route 
-                path="/reset-password" 
-                element={<ResetPasswordPage />} 
-              />
-              <Route 
-                path="/verify-email" 
-                element={<EmailVerificationPage />} 
-              />
-              
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<EmailVerificationPage />} />
+
               {/* Protected routes */}
               <Route
                 path="/"
