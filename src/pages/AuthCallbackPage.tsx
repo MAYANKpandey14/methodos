@@ -6,8 +6,9 @@ import { useAuthStore } from "@/stores/authStore";
 /**
  * Handles Supabase OAuth redirect.
  *
- * This page explicitly exchanges the OAuth code for a session. This prevents cases
- * where the session isn't persisted yet when the app immediately renders protected routes.
+ * This page explicitly exchanges the OAuth code for a session and waits for
+ * the auth store to sync before navigating. This prevents race conditions where
+ * the ProtectedRoute sees stale auth state and redirects back to login.
  */
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -17,24 +18,59 @@ export default function AuthCallbackPage() {
 
     const run = async () => {
       try {
-        // If we have a PKCE code in the URL, exchange it for a session.
-        // supabase-js will often do this automatically, but doing it explicitly
-        // avoids timing issues across different environments.
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
 
+        // Also check for hash fragment tokens (implicit flow)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get("access_token");
+
+        // Handle PKCE flow (code exchange)
         if (code) {
-          await supabase.auth.exchangeCodeForSession(window.location.href);
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error("Error exchanging code for session:", error);
+            throw error;
+          }
         }
 
-        // Refresh store state now that the session should exist.
-        await supabase.auth.getSession();
-        useAuthStore.getState().initialize();
+        // If we have hash fragment tokens, supabase-js should handle them via
+        // onAuthStateChange, but let's trigger a session refresh to be safe
+        if (accessToken || code) {
+          await supabase.auth.getSession();
+        }
+
+        // Wait for the auth store to update (max 5 seconds)
+        // The onAuthStateChange listener in authStore will update isAuthenticated
+        const maxWait = 5000;
+        const pollInterval = 100;
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < maxWait && !cancelled) {
+          // Check if auth state has synchronized
+          const { isAuthenticated, loading } = useAuthStore.getState();
+
+          if (isAuthenticated && !loading) {
+            break;
+          }
+
+          // Wait before next check
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
 
         if (!cancelled) {
-          navigate("/", { replace: true });
+          const { isAuthenticated } = useAuthStore.getState();
+
+          if (isAuthenticated) {
+            navigate("/", { replace: true });
+          } else {
+            // Auth didn't sync in time or failed
+            console.warn("Auth state did not sync after OAuth callback");
+            navigate("/login", { replace: true });
+          }
         }
-      } catch {
+      } catch (error) {
+        console.error("Auth callback error:", error);
         if (!cancelled) {
           navigate("/login", { replace: true });
         }
