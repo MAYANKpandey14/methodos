@@ -34,7 +34,7 @@ class MarkdownService {
   private cache: Map<string, MarkdownCache> = new Map();
   private marked: Marked;
   private options: Required<MarkdownOptions>;
-  
+
   constructor(options: MarkdownOptions = {}) {
     this.options = {
       enableMath: true,
@@ -59,7 +59,7 @@ class MarkdownService {
 
   private createMarkedInstance(): Marked {
     const instance = new Marked();
-    
+
     // Configure basic options
     instance.use({
       gfm: true,
@@ -73,7 +73,7 @@ class MarkdownService {
     // Enhanced code block rendering with syntax highlighting
     renderer.code = (token) => {
       const { text: code, lang: language } = token;
-      
+
       if (!this.options.enableSyntaxHighlighting || !language) {
         return `<pre class="bg-muted text-foreground p-4 rounded-lg overflow-x-auto"><code>${this.escapeHtml(code)}</code></pre>`;
       }
@@ -102,7 +102,7 @@ class MarkdownService {
       const header = token.header
         .map(cell => `<th class="border border-border px-4 py-2 bg-muted font-semibold text-left">${cell.text}</th>`)
         .join('');
-      
+
       const body = token.rows
         .map(row => {
           const cells = row.map(cell => `<td class="border border-border px-4 py-2">${cell.text}</td>`).join('');
@@ -131,10 +131,10 @@ class MarkdownService {
       const type = token.ordered ? 'ol' : 'ul';
       const start = token.start && token.start > 1 ? ` start="${token.start}"` : '';
       const className = token.ordered ? 'list-decimal' : 'list-disc';
-      
+
       const body = token.items.map(item => {
         let itemText = item.text;
-        
+
         // Handle task list items
         const taskMatch = itemText.match(/^\[([ x])\]\s+(.*)$/);
         if (taskMatch) {
@@ -145,16 +145,16 @@ class MarkdownService {
             <span class="${isChecked ? 'line-through text-muted-foreground' : ''}">${text}</span>
           </li>`;
         }
-        
+
         return `<li class="mb-2">${itemText}</li>`;
       }).join('');
-      
+
       // For task lists, don't add list styling
       const hasTaskItems = token.items.some(item => /^\[([ x])\]\s+/.test(item.text));
       if (hasTaskItems) {
         return `<ul class="space-y-2 my-4 text-foreground">${body}</ul>`;
       }
-      
+
       return `<${type}${start} class="${className} list-inside space-y-2 my-4 text-foreground">${body}</${type}>`;
     };
 
@@ -163,7 +163,7 @@ class MarkdownService {
       const level = token.depth;
       const text = token.text;
       const id = text.toLowerCase().replace(/[^\w]+/g, '-');
-      
+
       const sizes = {
         1: 'text-4xl font-bold',
         2: 'text-3xl font-semibold',
@@ -174,7 +174,7 @@ class MarkdownService {
       };
 
       const className = `${sizes[level as keyof typeof sizes]} text-foreground mt-8 mb-4 first:mt-0`;
-      
+
       return `<h${level} id="${id}" class="${className}">
         <a href="#${id}" class="group flex items-center no-underline text-foreground hover:text-primary">
           ${text}
@@ -188,10 +188,10 @@ class MarkdownService {
       const href = token.href;
       const title = token.title ? ` title="${token.title}"` : '';
       const text = token.text;
-      
+
       // Force ALL links to open in new tabs
       const target = ' target="_blank" rel="noopener noreferrer"';
-      
+
       return `<a href="${href}"${title}${target} class="text-primary hover:underline">${text}</a>`;
     };
 
@@ -200,12 +200,12 @@ class MarkdownService {
       const src = token.href;
       const alt = token.text || '';
       const title = token.title ? ` title="${token.title}"` : '';
-      
+
       return `<img src="${src}" alt="${alt}"${title} class="max-w-full h-auto rounded-lg shadow-md my-6" loading="lazy" />`;
     };
 
     instance.use({ renderer });
-    
+
     return instance;
   }
 
@@ -221,9 +221,9 @@ class MarkdownService {
     // Parse inline math: $...$
     content = content.replace(/\$([^$\n]+)\$/g, (match, math) => {
       try {
-        const rendered = katex.renderToString(math.trim(), { 
+        const rendered = katex.renderToString(math.trim(), {
           throwOnError: false,
-          displayMode: false 
+          displayMode: false
         });
         return `<span class="katex-inline">${rendered}</span>`;
       } catch (error) {
@@ -235,9 +235,9 @@ class MarkdownService {
     // Parse block math: $$...$$
     content = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
       try {
-        const rendered = katex.renderToString(math.trim(), { 
+        const rendered = katex.renderToString(math.trim(), {
           throwOnError: false,
-          displayMode: true 
+          displayMode: true
         });
         return `<div class="katex-block my-6">${rendered}</div>`;
       } catch (error) {
@@ -249,11 +249,18 @@ class MarkdownService {
     return content;
   }
 
+  private parseWikiLinks(content: string): string {
+    return content.replace(/\[\[([^|\]]+)(\|([^\]]+))?\]\]/g, (match, note, _, label) => {
+      const display = label || note;
+      return `<a href="#" data-wikilink="${note.trim()}" class="wiki-link text-primary font-medium hover:underline decoration-primary/50">${display.trim()}</a>`;
+    });
+  }
+
   private async renderMermaidDiagrams(): Promise<void> {
     if (!this.options.enableDiagrams) return;
 
     const mermaidElements = document.querySelectorAll('.mermaid[data-mermaid]');
-    
+
     for (const element of mermaidElements) {
       const code = element.getAttribute('data-mermaid');
       if (!code) continue;
@@ -301,7 +308,7 @@ class MarkdownService {
     if (this.cache.size > this.options.maxCacheSize) {
       const entries = Array.from(this.cache.entries())
         .sort((a, b) => a[1].timestamp - b[1].timestamp);
-      
+
       const toRemove = entries.slice(0, this.cache.size - this.options.maxCacheSize);
       toRemove.forEach(([key]) => this.cache.delete(key));
     }
@@ -326,15 +333,18 @@ class MarkdownService {
 
     try {
       // Parse math expressions first
-      const mathParsed = this.parseMathExpressions(cleanContent);
-      
+      let parsedContent = this.parseMathExpressions(cleanContent);
+
+      // Parse wiki links
+      parsedContent = this.parseWikiLinks(parsedContent);
+
       // Render markdown
-      const rawHtml = this.marked.parse(mathParsed) as string;
-      
+      const rawHtml = this.marked.parse(parsedContent) as string;
+
       // Sanitize HTML
       const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
         ADD_TAGS: ['mermaid'],
-        ADD_ATTR: ['data-mermaid', 'id'],
+        ADD_ATTR: ['data-mermaid', 'id', 'data-wikilink'],
       });
 
       // Cache the result
@@ -368,15 +378,18 @@ class MarkdownService {
 
     try {
       // Parse math expressions first
-      const mathParsed = this.parseMathExpressions(cleanContent);
-      
+      let parsedContent = this.parseMathExpressions(cleanContent);
+
+      // Parse wiki links
+      parsedContent = this.parseWikiLinks(parsedContent);
+
       // Render markdown synchronously
-      const rawHtml = this.marked.parse(mathParsed);
-      
+      const rawHtml = this.marked.parse(parsedContent);
+
       // Sanitize HTML
       const sanitizedHtml = DOMPurify.sanitize(rawHtml as string, {
         ADD_TAGS: ['mermaid'],
-        ADD_ATTR: ['data-mermaid', 'id'],
+        ADD_ATTR: ['data-mermaid', 'id', 'data-wikilink'],
       });
 
       // Cache the result

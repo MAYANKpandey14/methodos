@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Download, Printer, Eye, Edit, Split } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Save, Download, Printer, Eye, Edit, Split, Maximize, Minimize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
@@ -23,8 +23,9 @@ type ViewMode = 'edit' | 'preview' | 'split';
 export default function NoteEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPinned, setIsPinned] = useState(false);
@@ -36,6 +37,8 @@ export default function NoteEditorPage() {
   const [showStats, setShowStats] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isTypewriterMode, setIsTypewriterMode] = useState(false);
 
   const isMobile = useIsMobile();
 
@@ -58,6 +61,16 @@ export default function NoteEditorPage() {
     }
   }, [currentNote]);
 
+  // Pre-fill title from URL for new notes
+  useEffect(() => {
+    if (isNewNote && !title) {
+      const initialTitle = searchParams.get('title');
+      if (initialTitle) {
+        setTitle(initialTitle);
+      }
+    }
+  }, [isNewNote, searchParams]);
+
   // Auto-save for existing notes
   useEffect(() => {
     if (!isNewNote && currentNote && (debouncedTitle || debouncedContent)) {
@@ -69,7 +82,7 @@ export default function NoteEditorPage() {
 
   const handleAutoSave = async () => {
     if (!currentNote || isSaving) return;
-    
+
     setIsSaving(true);
     try {
       await updateNote.mutateAsync({
@@ -144,7 +157,7 @@ export default function NoteEditorPage() {
 
     // Use the enhanced textarea's built-in formatting methods
     const textareaEnhanced = textarea as any;
-    
+
     switch (type) {
       case 'bold':
         if (textareaEnhanced.insertMarkdown) {
@@ -236,6 +249,16 @@ export default function NoteEditorPage() {
     }
   }, []);
 
+  const handleWikiLinkClick = useCallback((noteTitle: string) => {
+    const targetNote = notes.find(n => n.title.toLowerCase() === noteTitle.toLowerCase());
+
+    if (targetNote) {
+      navigate(`/notes/${targetNote.id}`);
+    } else {
+      navigate(`/notes/new?title=${encodeURIComponent(noteTitle)}`);
+    }
+  }, [notes, navigate]);
+
   const handleExport = () => {
     setShowExportDialog(true);
   };
@@ -270,7 +293,7 @@ export default function NoteEditorPage() {
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline ml-2">Back</span>
           </Button>
-          
+
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -321,7 +344,7 @@ export default function NoteEditorPage() {
 
       {/* Toolbar */}
       <div className="border-b">
-        <EnhancedNoteEditorToolbar 
+        <EnhancedNoteEditorToolbar
           onFormat={formatSelection}
           onInsertImage={() => setShowImageUpload(true)}
           onTogglePreview={() => setViewMode(viewMode === 'preview' ? 'edit' : 'preview')}
@@ -332,8 +355,10 @@ export default function NoteEditorPage() {
           onPrint={handlePrint}
           showPreview={viewMode === 'preview'}
           isMobile={isMobile}
+          isTypewriterMode={isTypewriterMode}
+          onToggleTypewriter={() => setIsTypewriterMode(!isTypewriterMode)}
         />
-        
+
         {showFindReplace && (
           <FindReplacePanel
             content={content}
@@ -351,9 +376,11 @@ export default function NoteEditorPage() {
             onContentChange={setContent}
             viewMode={viewMode}
             title={title}
+            onWikiLinkClick={handleWikiLinkClick}
+            isTypewriterMode={isTypewriterMode}
           />
         </div>
-        
+
         {/* Side Panels */}
         {(showOutline || showStats) && (
           <div className="w-80 border-l bg-muted/20 overflow-y-auto">

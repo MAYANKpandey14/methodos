@@ -2,10 +2,10 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  Bold, 
-  Italic, 
-  Underline, 
+import {
+  Bold,
+  Italic,
+  Underline,
   Strikethrough,
   Code,
   Link,
@@ -30,7 +30,8 @@ import {
   Hash,
   BarChart3,
   Download,
-  Printer
+  Printer,
+  AlignVerticalJustifyCenter
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -45,6 +46,8 @@ interface EnhancedNoteEditorToolbarProps {
   onPrint?: () => void;
   showPreview?: boolean;
   isMobile?: boolean;
+  isTypewriterMode?: boolean;
+  onToggleTypewriter?: () => void;
 }
 
 interface ToolbarItem {
@@ -55,9 +58,9 @@ interface ToolbarItem {
   category: 'format' | 'insert' | 'structure' | 'advanced';
 }
 
-export function EnhancedNoteEditorToolbar({ 
-  onFormat, 
-  onInsertImage, 
+export function EnhancedNoteEditorToolbar({
+  onFormat,
+  onInsertImage,
   onTogglePreview,
   onToggleFindReplace,
   onToggleOutline,
@@ -65,7 +68,9 @@ export function EnhancedNoteEditorToolbar({
   onExport,
   onPrint,
   showPreview = false,
-  isMobile = false
+  isMobile = false,
+  isTypewriterMode = false,
+  onToggleTypewriter
 }: EnhancedNoteEditorToolbarProps) {
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
 
@@ -76,33 +81,33 @@ export function EnhancedNoteEditorToolbar({
     { icon: Underline, action: 'underline', tooltip: 'Underline', shortcut: 'Ctrl+U', category: 'format' },
     { icon: Strikethrough, action: 'strikethrough', tooltip: 'Strikethrough', category: 'format' },
     { icon: Code, action: 'inline-code', tooltip: 'Inline Code', shortcut: 'Ctrl+`', category: 'format' },
-    
+
     // Headings and structure
     { icon: Heading1, action: 'heading1', tooltip: 'Heading 1', category: 'structure' },
     { icon: Heading2, action: 'heading2', tooltip: 'Heading 2', category: 'structure' },
     { icon: Heading3, action: 'heading3', tooltip: 'Heading 3', category: 'structure' },
-    
+
     // Lists and organization
     { icon: List, action: 'unordered-list', tooltip: 'Bullet List', category: 'structure' },
     { icon: ListOrdered, action: 'ordered-list', tooltip: 'Numbered List', category: 'structure' },
     { icon: CheckSquare, action: 'task-list', tooltip: 'Task List', category: 'structure' },
     { icon: Quote, action: 'blockquote', tooltip: 'Blockquote', category: 'structure' },
-    
+
     // Insert elements
     { icon: Link, action: 'link', tooltip: 'Insert Link', shortcut: 'Ctrl+K', category: 'insert' },
     { icon: Image, action: 'image', tooltip: 'Insert Image', category: 'insert' },
     { icon: Table, action: 'table', tooltip: 'Insert Table', category: 'insert' },
     { icon: Minus, action: 'horizontal-rule', tooltip: 'Horizontal Rule', category: 'insert' },
-    
+
     // Advanced
     { icon: Code, action: 'code-block', tooltip: 'Code Block', category: 'advanced' },
   ];
 
-  const primaryItems = toolbarItems.filter(item => 
+  const primaryItems = toolbarItems.filter(item =>
     ['bold', 'italic', 'heading1', 'heading2', 'unordered-list', 'ordered-list', 'link', 'image'].includes(item.action)
   );
 
-  const secondaryItems = toolbarItems.filter(item => 
+  const secondaryItems = toolbarItems.filter(item =>
     !primaryItems.some(primary => primary.action === item.action)
   );
 
@@ -141,7 +146,7 @@ export function EnhancedNoteEditorToolbar({
         <div className="flex items-center justify-between p-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center space-x-1 overflow-x-auto">
             {primaryItems.slice(0, 6).map(item => renderToolbarItem(item))}
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -163,14 +168,26 @@ export function EnhancedNoteEditorToolbar({
           </div>
 
           {onTogglePreview && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePreview}
-              className="h-8 w-8 p-0 ml-2"
-            >
-              {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
-            </Button>
+            <div className="flex items-center">
+              {onToggleTypewriter && (
+                <Button
+                  variant={isTypewriterMode ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={onToggleTypewriter}
+                  title="Typewriter Mode"
+                >
+                  <AlignVerticalJustifyCenter className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onTogglePreview}
+                className="h-8 w-8 p-0 ml-2"
+              >
+                {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+              </Button>
+            </div>
           )}
         </div>
       </TooltipProvider>
@@ -188,18 +205,18 @@ export function EnhancedNoteEditorToolbar({
             {renderToolbarItem(toolbarItems.find(item => item.action === 'underline')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'strikethrough')!)}
           </div>
-          
+
           <Separator orientation="vertical" className="h-6" />
-          
+
           {/* Headings */}
           <div className="flex items-center space-x-1">
             {renderToolbarItem(toolbarItems.find(item => item.action === 'heading1')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'heading2')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'heading3')!)}
           </div>
-          
+
           <Separator orientation="vertical" className="h-6" />
-          
+
           {/* Lists & Structure */}
           <div className="flex items-center space-x-1">
             {renderToolbarItem(toolbarItems.find(item => item.action === 'unordered-list')!)}
@@ -207,9 +224,9 @@ export function EnhancedNoteEditorToolbar({
             {renderToolbarItem(toolbarItems.find(item => item.action === 'task-list')!)}
             {renderToolbarItem(toolbarItems.find(item => item.action === 'blockquote')!)}
           </div>
-          
+
           <Separator orientation="vertical" className="h-6" />
-          
+
           {/* Insert Elements */}
           <div className="flex items-center space-x-1">
             {renderToolbarItem(toolbarItems.find(item => item.action === 'link')!)}
@@ -261,21 +278,40 @@ export function EnhancedNoteEditorToolbar({
         </div>
 
         {onTogglePreview && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onTogglePreview}
-                className="h-8 w-8 p-0"
-              >
-                {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-1">
+            {onToggleTypewriter && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isTypewriterMode ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={onToggleTypewriter}
+                    className="h-8 w-8 p-0"
+                  >
+                    <AlignVerticalJustifyCenter className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Toggle Typewriter Mode
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onTogglePreview}
+                  className="h-8 w-8 p-0"
+                >
+                  {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         )}
       </div>
     </TooltipProvider>

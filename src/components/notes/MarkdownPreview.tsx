@@ -9,14 +9,16 @@ interface MarkdownPreviewProps {
   onScroll?: (scrollTop: number, scrollHeight: number) => void;
   scrollSyncTarget?: number;
   className?: string;
+  onWikiLinkClick?: (noteTitle: string) => void;
 }
 
-export function MarkdownPreview({ 
-  content, 
-  title, 
-  onScroll, 
+export function MarkdownPreview({
+  content,
+  title,
+  onScroll,
   scrollSyncTarget,
-  className = "" 
+  className = "",
+  onWikiLinkClick
 }: MarkdownPreviewProps) {
   const [renderedHtml, setRenderedHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +63,20 @@ export function MarkdownPreview({
     }
   }, [scrollSyncTarget]);
 
+  // Handle click events for wiki links
+  const handleContentClick = useCallback((event: React.MouseEvent) => {
+    const target = event.target as HTMLElement;
+    const wikiLink = target.closest('[data-wikilink]');
+
+    if (wikiLink && onWikiLinkClick) {
+      event.preventDefault();
+      const noteTitle = wikiLink.getAttribute('data-wikilink');
+      if (noteTitle) {
+        onWikiLinkClick(noteTitle);
+      }
+    }
+  }, [onWikiLinkClick]);
+
   // Document statistics
   const getWordCount = (text: string): number => {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -94,23 +110,24 @@ export function MarkdownPreview({
       )}
 
       {/* Content Area */}
-      <ScrollArea 
+      <ScrollArea
         ref={scrollAreaRef}
-        className="flex-1" 
+        className="flex-1"
         onScrollCapture={handleScroll}
       >
         <div ref={contentRef} className="p-6 max-w-none">
           {title && (
             <h1 className="text-3xl font-bold mb-6 text-foreground">{title}</h1>
           )}
-          
+
           {isLoading ? (
             <div className="text-muted-foreground flex items-center gap-2">
               <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
               Rendering markdown...
             </div>
           ) : renderedHtml ? (
-            <div 
+            <div
+              onClick={handleContentClick}
               className="prose prose-slate dark:prose-invert max-w-none 
                          prose-headings:text-foreground prose-p:text-foreground 
                          prose-strong:text-foreground prose-code:text-foreground 

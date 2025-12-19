@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { compressImage } from '@/utils/imageCompression';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageUploadHandlerProps {
   onImageInsert: (imageMarkdown: string) => void;
@@ -33,51 +34,48 @@ export function ImageUploadHandler({ onImageInsert, onClose, className }: ImageU
         quality: 0.8
       });
 
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadState(prev => ({
-          ...prev,
-          progress: Math.min(prev.progress + 10, 90)
-        }));
-      }, 100);
+      // Simulate initial progress
+      setUploadState(prev => ({ ...prev, progress: 10 }));
 
-      // Convert image to base64 data URL for permanent storage in markdown
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        clearInterval(progressInterval);
-        const base64Data = e.target?.result as string;
-        
-        // Create markdown with base64 embedded image
-        const imageMarkdown = `![${file.name}](${base64Data})`;
-        
-        setUploadState({ uploading: false, progress: 100 });
-        
-        // Insert the image markdown
-        onImageInsert(imageMarkdown);
-        
-        // Close the upload handler after a short delay
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      };
-      
-      reader.onerror = () => {
-        clearInterval(progressInterval);
-        setUploadState({ 
-          uploading: false, 
-          progress: 0, 
-          error: 'Failed to read image file' 
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const filePath = `uploads/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('note-images')
+        .upload(filePath, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
         });
-      };
-      
-      reader.readAsDataURL(compressedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      setUploadState(prev => ({ ...prev, progress: 80 }));
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('note-images')
+        .getPublicUrl(filePath);
+
+      setUploadState({ uploading: false, progress: 100 });
+
+      // Create markdown with public URL
+      const imageMarkdown = `![${file.name}](${publicUrl})`;
+
+      // Insert the image markdown
+      onImageInsert(imageMarkdown);
+
+      // Close the upload handler after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 500);
 
     } catch (error) {
-      setUploadState({ 
-        uploading: false, 
-        progress: 0, 
-        error: error instanceof Error ? error.message : 'Upload failed' 
+      console.error('Upload error:', error);
+      setUploadState({
+        uploading: false,
+        progress: 0,
+        error: error instanceof Error ? error.message : 'Upload failed'
       });
     }
   }, [onImageInsert, onClose]);
@@ -96,13 +94,13 @@ export function ImageUploadHandler({ onImageInsert, onClose, className }: ImageU
     onDropRejected: (rejectedFiles) => {
       const error = rejectedFiles[0]?.errors[0];
       let errorMessage = 'Upload failed';
-      
+
       if (error?.code === 'file-too-large') {
         errorMessage = 'File size must be less than 10MB';
       } else if (error?.code === 'file-invalid-type') {
         errorMessage = 'Please upload a valid image file';
       }
-      
+
       setUploadState({ uploading: false, progress: 0, error: errorMessage });
     }
   });
@@ -160,7 +158,7 @@ export function ImageUploadHandler({ onImageInsert, onClose, className }: ImageU
             >
               <input {...getInputProps()} />
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              
+
               {isDragActive ? (
                 <p className="text-lg font-medium">
                   {isDragAccept ? 'Drop the image here' : 'Invalid file type'}

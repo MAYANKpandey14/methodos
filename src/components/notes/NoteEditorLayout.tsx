@@ -9,14 +9,18 @@ interface NoteEditorLayoutProps {
   viewMode: 'edit' | 'preview' | 'split';
   title: string;
   onSelectionChange?: (start: number, end: number) => void;
+  onWikiLinkClick?: (noteTitle: string) => void;
+  isTypewriterMode?: boolean;
 }
 
-export function NoteEditorLayout({ 
-  content, 
-  onContentChange, 
-  viewMode, 
+export function NoteEditorLayout({
+  content,
+  onContentChange,
+  viewMode,
   title,
-  onSelectionChange
+  onSelectionChange,
+  onWikiLinkClick,
+  isTypewriterMode
 }: NoteEditorLayoutProps) {
   const [editorScrollTop, setEditorScrollTop] = useState(0);
   const [previewScrollTop, setPreviewScrollTop] = useState(0);
@@ -44,6 +48,7 @@ export function NoteEditorLayout({
           content={content}
           onContentChange={onContentChange}
           onSelectionChange={onSelectionChange}
+          isTypewriterMode={isTypewriterMode}
         />
       </div>
     );
@@ -55,6 +60,7 @@ export function NoteEditorLayout({
         <MarkdownPreview
           content={content}
           title={title}
+          onWikiLinkClick={onWikiLinkClick}
         />
       </div>
     );
@@ -70,6 +76,7 @@ export function NoteEditorLayout({
           onSelectionChange={onSelectionChange}
           onScroll={handleEditorScroll}
           scrollSyncTarget={editorScrollTop}
+          isTypewriterMode={isTypewriterMode}
         />
       </ResizablePanel>
       <ResizableHandle withHandle />
@@ -80,6 +87,7 @@ export function NoteEditorLayout({
           onScroll={handlePreviewScroll}
           scrollSyncTarget={previewScrollTop}
           className="border-l"
+          onWikiLinkClick={onWikiLinkClick}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

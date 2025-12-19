@@ -1,5 +1,9 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SlashCommandMenu } from './SlashCommandMenu';
+import { TableControls } from './TableControls';
+import { getCaretCoordinates } from '@/utils/caretCoordinates';
+import { isCursorInTable, processTableAction } from '@/utils/tableUtils';
 
 interface EnhancedNoteEditorTextareaProps {
   content: string;
@@ -7,17 +11,24 @@ interface EnhancedNoteEditorTextareaProps {
   onSelectionChange?: (start: number, end: number) => void;
   onScroll?: (scrollTop: number, scrollHeight: number) => void;
   scrollSyncTarget?: number;
+  isTypewriterMode?: boolean;
 }
 
-export function EnhancedNoteEditorTextarea({ 
-  content, 
-  onContentChange, 
+export function EnhancedNoteEditorTextarea({
+  content,
+  onContentChange,
   onSelectionChange,
   onScroll,
-  scrollSyncTarget 
+  scrollSyncTarget,
+  isTypewriterMode = false,
 }: EnhancedNoteEditorTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [showSlashMenu, setShowSlashMenu] = React.useState(false);
+  const [slashMenuPosition, setSlashMenuPosition] = React.useState({ top: 0, left: 0 });
+  const [slashCommandIndex, setSlashCommandIndex] = React.useState<number | null>(null);
+  const [showTableControls, setShowTableControls] = React.useState(false);
+  const [tableControlsPosition, setTableControlsPosition] = React.useState({ top: 0, left: 0 });
 
   // Handle scroll events for synchronization
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
@@ -41,11 +52,55 @@ export function EnhancedNoteEditorTextarea({
   }, [scrollSyncTarget]);
 
   const handleSelectionChange = useCallback(() => {
-    if (textareaRef.current && onSelectionChange) {
+    if (textareaRef.current) {
       const { selectionStart, selectionEnd } = textareaRef.current;
-      onSelectionChange(selectionStart, selectionEnd);
+      if (onSelectionChange) {
+        onSelectionChange(selectionStart, selectionEnd);
+      }
+
+      // Typewriter Scrolling Logic
+      if (isTypewriterMode) {
+        const textarea = textareaRef.current;
+        const coordinates = getCaretCoordinates(textarea, selectionStart);
+        const viewportHeight = textarea.clientHeight;
+
+        // Calculate target scroll position (center the caret)
+        // coordinates.top is relative to the top of the content
+        const targetScrollTop = coordinates.top - (viewportHeight / 2) + (parseInt(getComputedStyle(textarea).lineHeight) / 2);
+
+        // Smooth scroll to position
+        textarea.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      }
+
+      // Table Controls Logic
+      if (isCursorInTable(textareaRef.current.value, selectionStart)) {
+        const textarea = textareaRef.current;
+        const coordinates = getCaretCoordinates(textarea, selectionStart);
+        const rect = textarea.getBoundingClientRect();
+        setTableControlsPosition({
+          top: rect.top + coordinates.top - textarea.scrollTop,
+          left: rect.left + coordinates.left - textarea.scrollLeft
+        });
+        setShowTableControls(true);
+      } else {
+        setShowTableControls(false);
+      }
     }
-  }, [onSelectionChange]);
+  }, [onSelectionChange, isTypewriterMode]);
+
+  const handleTableAction = useCallback((action: 'addRow' | 'addCol' | 'deleteRow' | 'deleteCol' | 'format') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const { selectionStart } = textarea;
+    const newContent = processTableAction(content, selectionStart, action);
+    onContentChange(newContent);
+    // Keep focus
+    setTimeout(() => textarea.focus(), 0);
+  }, [content, onContentChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const textarea = textareaRef.current;
@@ -86,7 +141,7 @@ export function EnhancedNoteEditorTextarea({
       const { selectionStart } = textarea;
       const lines = content.slice(0, selectionStart).split('\n');
       const currentLine = lines[lines.length - 1];
-      
+
       // Check for numbered list
       const numberedMatch = currentLine.match(/^(\s*)(\d+)\.\s(.*)$/);
       if (numberedMatch) {
@@ -94,8 +149,8 @@ export function EnhancedNoteEditorTextarea({
         if (text.trim() === '') {
           // Empty list item - remove it and exit list
           e.preventDefault();
-          const newContent = content.slice(0, selectionStart - currentLine.length) + 
-                           content.slice(selectionStart);
+          const newContent = content.slice(0, selectionStart - currentLine.length) +
+            content.slice(selectionStart);
           onContentChange(newContent);
           setTimeout(() => {
             const newPos = selectionStart - currentLine.length;
@@ -110,7 +165,7 @@ export function EnhancedNoteEditorTextarea({
         }
         return;
       }
-      
+
       // Check for bullet list
       const bulletMatch = currentLine.match(/^(\s*)(-|\*|\+)\s(.*)$/);
       if (bulletMatch) {
@@ -118,8 +173,8 @@ export function EnhancedNoteEditorTextarea({
         if (text.trim() === '') {
           // Empty list item - remove it and exit list
           e.preventDefault();
-          const newContent = content.slice(0, selectionStart - currentLine.length) + 
-                           content.slice(selectionStart);
+          const newContent = content.slice(0, selectionStart - currentLine.length) +
+            content.slice(selectionStart);
           onContentChange(newContent);
           setTimeout(() => {
             const newPos = selectionStart - currentLine.length;
@@ -133,7 +188,7 @@ export function EnhancedNoteEditorTextarea({
         }
         return;
       }
-      
+
       // Check for task list
       const taskMatch = currentLine.match(/^(\s*)(-|\*|\+)\s\[([ x])\]\s(.*)$/);
       if (taskMatch) {
@@ -141,8 +196,8 @@ export function EnhancedNoteEditorTextarea({
         if (text.trim() === '') {
           // Empty task item - remove it and exit list
           e.preventDefault();
-          const newContent = content.slice(0, selectionStart - currentLine.length) + 
-                           content.slice(selectionStart);
+          const newContent = content.slice(0, selectionStart - currentLine.length) +
+            content.slice(selectionStart);
           onContentChange(newContent);
           setTimeout(() => {
             const newPos = selectionStart - currentLine.length;
@@ -196,7 +251,85 @@ export function EnhancedNoteEditorTextarea({
         }
       }
     }
+
+    // Slash command trigger
+    if (e.key === '/') {
+      const { selectionStart } = textarea;
+      // Only trigger if at start of line or preceded by whitespace
+      const precedingChar = content.charAt(selectionStart - 1);
+      if (selectionStart === 0 || /\s/.test(precedingChar)) {
+        const coordinates = getCaretCoordinates(textarea, selectionStart);
+        const rect = textarea.getBoundingClientRect();
+
+        setSlashMenuPosition({
+          top: rect.top + coordinates.top - textarea.scrollTop,
+          left: rect.left + coordinates.left - textarea.scrollLeft + 20, // Offset for visibility
+        });
+        setSlashCommandIndex(selectionStart);
+        setShowSlashMenu(true);
+        // Don't prevent default, let the '/' be typed so we can delete it later or let user see it
+      }
+    }
   }, [content, onContentChange]);
+
+  const handleSlashCommandSelect = useCallback((command: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea || slashCommandIndex === null) return;
+
+    setShowSlashMenu(false);
+
+    // Calculate range to replace: from the slash to current position (if they kept typing in textarea, which they shouldn't since focus moves, but handle it anyway)
+    // Actually, since focus moves to popover, the textarea content stays as ".... /"
+    // So we just need to replace the "/" at slashCommandIndex.
+
+    const { selectionStart } = textarea;
+    // We want to remove the '/' that triggered this.
+    // It should be at slashCommandIndex.
+
+    const beforeSlash = content.slice(0, slashCommandIndex);
+    const afterSlash = content.slice(slashCommandIndex + 1); // +1 to skip the '/'
+
+    // We need to construct the new content based on command
+    let insert = '';
+    let cursorOffset = 0;
+
+    switch (command) {
+      case 'heading1': insert = '# '; break;
+      case 'heading2': insert = '## '; break;
+      case 'heading3': insert = '### '; break;
+      case 'unordered-list': insert = '- '; break;
+      case 'ordered-list': insert = '1. '; break;
+      case 'task-list': insert = '- [ ] '; break;
+      case 'blockquote': insert = '> '; break;
+      case 'code-block':
+        insert = '```\n\n```';
+        cursorOffset = 4; // Position inside the block
+        break;
+      case 'table':
+        insert = '| Col 1 | Col 2 |\n|---|---|\n| Val 1 | Val 2 |';
+        break;
+      case 'horizontal-rule': insert = '---\n'; break;
+      case 'image':
+        insert = '![Alt](url)';
+        cursorOffset = 2;
+        break;
+      case 'link':
+        insert = '[Link](url)';
+        cursorOffset = 1;
+        break;
+    }
+
+    const newContent = beforeSlash + insert + afterSlash;
+    onContentChange(newContent);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = slashCommandIndex + insert.length - (command === 'code-block' || command === 'image' || command === 'link' ? (insert.length - cursorOffset) : 0);
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+
+    setSlashCommandIndex(null);
+  }, [content, onContentChange, slashCommandIndex]);
 
   const insertText = useCallback((text: string) => {
     const textarea = textareaRef.current;
@@ -220,10 +353,10 @@ export function EnhancedNoteEditorTextarea({
 
     const { selectionStart, selectionEnd } = textarea;
     const selectedText = content.slice(selectionStart, selectionEnd);
-    
+
     // Check if the selected text already has this formatting
     const hasFormatting = selectedText.startsWith(prefix) && selectedText.endsWith(suffix);
-    
+
     let newContent: string;
     let newSelectionStart: number;
     let newSelectionEnd: number;
@@ -239,7 +372,7 @@ export function EnhancedNoteEditorTextarea({
       const textToFormat = selectedText || placeholder;
       const formattedText = `${prefix}${textToFormat}${suffix}`;
       newContent = content.slice(0, selectionStart) + formattedText + content.slice(selectionEnd);
-      
+
       if (selectedText) {
         // Keep the original text selected (without the formatting markers)
         newSelectionStart = selectionStart + prefix.length;
@@ -250,7 +383,7 @@ export function EnhancedNoteEditorTextarea({
         newSelectionEnd = selectionStart + prefix.length + placeholder.length;
       }
     }
-    
+
     onContentChange(newContent);
 
     // Set cursor/selection position
@@ -277,9 +410,9 @@ export function EnhancedNoteEditorTextarea({
   }, [insertMarkdownAtSelection, insertText, content]);
 
   return (
-    <ScrollArea 
+    <ScrollArea
       ref={scrollAreaRef}
-      className="h-full" 
+      className="h-full"
       onScrollCapture={handleScroll}
     >
       <div className="min-h-full p-4">
@@ -293,6 +426,27 @@ export function EnhancedNoteEditorTextarea({
           className="w-full min-h-[calc(100vh-300px)] resize-none border-0 bg-transparent focus:outline-none focus:ring-0 text-sm leading-relaxed font-mono"
           style={{ minHeight: 'calc(100vh - 300px)' }}
         />
+        <SlashCommandMenu
+          open={showSlashMenu}
+          onOpenChange={(open) => {
+            setShowSlashMenu(open);
+            if (!open) {
+              textareaRef.current?.focus();
+            }
+          }}
+          onSelect={handleSlashCommandSelect}
+          position={slashMenuPosition}
+        />
+        {showTableControls && (
+          <TableControls
+            position={tableControlsPosition}
+            onAddRow={() => handleTableAction('addRow')}
+            onAddCol={() => handleTableAction('addCol')}
+            onDeleteRow={() => handleTableAction('deleteRow')}
+            onDeleteCol={() => handleTableAction('deleteCol')}
+            onFormat={() => handleTableAction('format')}
+          />
+        )}
       </div>
     </ScrollArea>
   );
