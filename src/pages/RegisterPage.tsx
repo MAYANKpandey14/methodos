@@ -15,7 +15,6 @@ import { sanitizeInput, validateEmail, validatePasswordStrength } from '@/utils/
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const { signUp, signInWithGoogle, loading, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
@@ -41,13 +40,12 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Security: Input validation and sanitization
     const sanitizedEmail = sanitizeInput(email, 254);
     const sanitizedPassword = sanitizeInput(password, 100);
-    const sanitizedConfirmPassword = sanitizeInput(confirmPassword, 100);
     const sanitizedFullName = sanitizeInput(fullName, 100);
-    
+
     // Validate email format
     if (!validateEmail(sanitizedEmail)) {
       toast({
@@ -57,19 +55,10 @@ const RegisterPage = () => {
       });
       return;
     }
-    
-    if (sanitizedPassword !== sanitizedConfirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match.',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     // Enhanced password validation using centralized security function
     const passwordValidation = validatePasswordStrength(sanitizedPassword);
-    
+
     if (!passwordValidation.isValid) {
       toast({
         title: 'Password Requirements Not Met',
@@ -79,8 +68,9 @@ const RegisterPage = () => {
       return;
     }
 
+    // Pass only email and password; authStore handles missing fullName
     const result = await signUp(sanitizedEmail, sanitizedPassword, sanitizedFullName);
-    
+
     if (result.error) {
       toast({
         title: 'Error',
@@ -187,20 +177,6 @@ const RegisterPage = () => {
                   maxLength={100}
                 />
                 <PasswordStrength password={password} className="mt-2" />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <PasswordInput
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="mt-1"
-                  placeholder="Confirm your password"
-                  minLength={8}
-                  maxLength={100}
-                />
-                <PasswordStrength password={confirmPassword} className="mt-2" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Creating account...' : 'Create Account'}

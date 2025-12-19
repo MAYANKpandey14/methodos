@@ -12,13 +12,9 @@ const ThemeToggle = ({ className }: ThemeToggleProps) => {
   const { theme, setTheme, systemTheme } = useTheme();
 
   const toggleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('system');
-    } else {
-      setTheme('light');
-    }
+    // Check actual current appearance to decide next state
+    const isDark = theme === 'dark' || (theme === 'system' && systemTheme === 'dark');
+    setTheme(isDark ? 'light' : 'dark');
   };
 
   const getIcon = () => {
