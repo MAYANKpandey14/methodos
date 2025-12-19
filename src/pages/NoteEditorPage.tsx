@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Download, Printer, Eye, Edit, Split, Maximize, Minimiz
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
+import { markdownService } from '@/lib/markdown';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEBOUNCE_TIMES } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,6 +16,7 @@ import { DocumentStats } from '@/components/notes/DocumentStats';
 import { ImageUploadHandler } from '@/components/notes/ImageUploadHandler';
 import { ExportDialog } from '@/components/notes/ExportDialog';
 import { ExportService } from '@/services/exportService';
+import { TagsList } from '@/components/notes/TagsList';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -83,13 +85,20 @@ export default function NoteEditorPage() {
   const handleAutoSave = async () => {
     if (!currentNote || isSaving) return;
 
+    const { frontmatter, hashtags } = markdownService.parseFrontmatter(content);
+    const saveTitle = frontmatter.title || title || 'Untitled';
+    const savePinned = frontmatter.pinned !== undefined ? frontmatter.pinned : isPinned;
+    const fmTags = (frontmatter.tags as string[]) || [];
+    const derivedTags = Array.from(new Set([...fmTags, ...hashtags]));
+
     setIsSaving(true);
     try {
       await updateNote.mutateAsync({
         id: currentNote.id,
-        title: title || 'Untitled',
+        title: String(saveTitle),
         content,
-        isPinned,
+        isPinned: Boolean(savePinned),
+        tags: derivedTags,
       });
       setLastSaved(new Date());
     } catch (error) {
@@ -100,30 +109,36 @@ export default function NoteEditorPage() {
   };
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      toast({
-        title: "Title required",
-        description: "Please enter a title for your note.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const { frontmatter, hashtags } = markdownService.parseFrontmatter(content);
+
+    // If user provided a title in frontmatter, it takes precedence for the note title
+    // Otherwise fallback to existing title state
+    const saveTitle = frontmatter.title || title?.trim() || 'Untitled';
+    const savePinned = frontmatter.pinned !== undefined ? frontmatter.pinned : isPinned;
+    const fmTags = (frontmatter.tags as string[]) || [];
+    const derivedTags = Array.from(new Set([...fmTags, ...hashtags]));
+
+    // Update local state if frontmatter overrides
+    if (frontmatter.title && frontmatter.title !== title) setTitle(String(frontmatter.title));
+    if (frontmatter.pinned !== undefined && frontmatter.pinned !== isPinned) setIsPinned(Boolean(frontmatter.pinned));
 
     setIsSaving(true);
     try {
       if (isNewNote) {
         await createNote.mutateAsync({
-          title: title.trim(),
+          title: String(saveTitle),
           content,
-          isPinned,
+          isPinned: Boolean(savePinned),
+          tags: derivedTags,
         });
         navigate('/notes');
       } else if (currentNote) {
         await updateNote.mutateAsync({
           id: currentNote.id,
-          title: title.trim(),
+          title: String(saveTitle),
           content,
-          isPinned,
+          isPinned: Boolean(savePinned),
+          tags: derivedTags,
         });
         setLastSaved(new Date());
         toast({
@@ -370,15 +385,22 @@ export default function NoteEditorPage() {
 
       {/* Main Content with Side Panels */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <NoteEditorLayout
-            content={content}
-            onContentChange={setContent}
-            viewMode={viewMode}
-            title={title}
-            onWikiLinkClick={handleWikiLinkClick}
-            isTypewriterMode={isTypewriterMode}
-          />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {currentNote?.tags && currentNote.tags.length > 0 && (
+            <div className="px-4 py-2 border-b bg-muted/10">
+              <TagsList tags={currentNote.tags} />
+            </div>
+          )}
+          <div className="flex-1 overflow-hidden">
+            <NoteEditorLayout
+              content={content}
+              onContentChange={setContent}
+              viewMode={viewMode}
+              title={title}
+              onWikiLinkClick={handleWikiLinkClick}
+              isTypewriterMode={isTypewriterMode}
+            />
+          </div>
         </div>
 
         {/* Side Panels */}
@@ -399,29 +421,30 @@ export default function NoteEditorPage() {
             )}
           </div>
         )}
+
+        {/* Image Upload Overlay */}
+        {showImageUpload && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <ImageUploadHandler
+              onImageInsert={(markdown) => {
+                setContent(prev => prev + '\n' + markdown);
+                setShowImageUpload(false);
+              }}
+              onClose={() => setShowImageUpload(false)}
+              className="w-full max-w-lg"
+            />
+          </div>
+        )}
+
+        {/* Export Dialog */}
+        <ExportDialog
+          isOpen={showExportDialog}
+          onClose={() => setShowExportDialog(false)}
+          content={content}
+          defaultTitle={title || 'Untitled'}
+        />
+
       </div>
-
-      {/* Image Upload Overlay */}
-      {showImageUpload && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <ImageUploadHandler
-            onImageInsert={(markdown) => {
-              setContent(prev => prev + '\n' + markdown);
-              setShowImageUpload(false);
-            }}
-            onClose={() => setShowImageUpload(false)}
-            className="w-full max-w-lg"
-          />
-        </div>
-      )}
-
-      {/* Export Dialog */}
-      <ExportDialog
-        isOpen={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        content={content}
-        defaultTitle={title || 'Untitled'}
-      />
 
       {/* Status Bar */}
       <div className="border-t px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">

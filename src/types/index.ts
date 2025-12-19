@@ -62,6 +62,7 @@ export interface Note {
   title: string;
   content: string;
   isPinned: boolean;
+  tags?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

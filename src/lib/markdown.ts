@@ -16,6 +16,19 @@ import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-yaml';
 import { CACHE_CONFIG } from './constants';
 
+export interface FrontmatterData {
+  title?: string;
+  tags?: string[];
+  pinned?: boolean;
+  [key: string]: any;
+}
+
+export interface ParsedContent {
+  content: string;
+  frontmatter: FrontmatterData;
+  hashtags: string[];
+}
+
 interface MarkdownCache {
   content: string;
   html: string;
@@ -254,6 +267,67 @@ class MarkdownService {
       const display = label || note;
       return `<a href="#" data-wikilink="${note.trim()}" class="wiki-link text-primary font-medium hover:underline decoration-primary/50">${display.trim()}</a>`;
     });
+  }
+
+  parseFrontmatter(content: string): ParsedContent {
+    const frontmatterRegex = /^---\n([\s\S]*?)\n---\n/;
+    const match = content.match(frontmatterRegex);
+
+    if (!match) {
+      return { content, frontmatter: {}, hashtags: [] };
+    }
+
+    const yamlBlock = match[1];
+    const frontmatter: FrontmatterData = {};
+
+    // Simple YAML parser (since we don't want to add a heavy dependency like js-yaml just for this)
+    yamlBlock.split('\n').forEach(line => {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        let value = parts.slice(1).join(':').trim();
+
+        // Handle array syntax [a, b]
+        if (value.startsWith('[') && value.endsWith(']')) {
+          const arrayValues = value.slice(1, -1).split(',').map(v => v.trim());
+          frontmatter[key] = arrayValues;
+        } else if (value === 'true') {
+          frontmatter[key] = true;
+        } else if (value === 'false') {
+          frontmatter[key] = false;
+        } else {
+          // Strip quotes if present
+          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          frontmatter[key] = value;
+        }
+      }
+    });
+
+    const bodyContent = content.replace(frontmatterRegex, '');
+    const hashtags = this.parseHashtags(bodyContent);
+
+    return {
+      content: bodyContent,
+      frontmatter,
+      hashtags
+    };
+  }
+
+  private parseHashtags(content: string): string[] {
+    const hashtags = new Set<string>();
+    // Regex to match hashtags that are not part of a link or code
+    // This is a simplified regex; detecting tags reliably in markdown complex without a full parser
+    // For now we look for #tag preceded by whitespace or start of line
+    const regex = /(?:^|\s)#([a-zA-Z0-9_]+)/g;
+
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      hashtags.add(match[1]);
+    }
+
+    return Array.from(hashtags);
   }
 
   private async renderMermaidDiagrams(): Promise<void> {
