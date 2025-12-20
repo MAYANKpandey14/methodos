@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,7 +25,9 @@ import {
   LogOut,
   Bookmark,
   StickyNote,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +42,15 @@ const Layout = () => {
   const { toast } = useToast();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -108,11 +118,36 @@ const Layout = () => {
       <div className="min-h-screen bg-background flex w-full">
         {/* Desktop Sidebar */}
         {!isMobile && (
-          <div className="w-64 bg-card shadow-lg flex flex-col border-r relative">
-            <div className="flex items-center px-6 py-4 border-b">
-              <img src={MethodOSLogo} alt="MethodOS Logo" className="h-6 w-6 md:h-7 md:w-7 mr-2" />
-              <div className="font-bricolage text-xl font-bold text-foreground">MethodOS</div>
+          <div className={cn(
+            "bg-card shadow-lg flex flex-col border-r relative transition-all duration-300 ease-in-out",
+            sidebarCollapsed ? "w-16" : "w-64"
+          )}>
+            <div className="flex items-center justify-between px-4 py-4 border-b">
+              <div className={cn(
+                "flex items-center transition-all duration-300",
+                sidebarCollapsed && "justify-center w-full"
+              )}>
+                <img src={MethodOSLogo} alt="MethodOS Logo" className="h-6 w-6 md:h-7 md:w-7 flex-shrink-0" />
+                {!sidebarCollapsed && (
+                  <div className="font-bricolage text-xl font-bold text-foreground ml-2">MethodOS</div>
+                )}
+              </div>
             </div>
+
+            {/* Collapse Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="absolute -right-3 top-16 z-20 h-6 w-6 rounded-full border bg-card shadow-md hover:bg-accent"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronLeft className="h-3 w-3" />
+              )}
+            </Button>
 
             <nav className="mt-6 flex-1 overflow-y-auto relative" role="navigation" aria-label="Main navigation">
               {/* Active indicator background - repositioned and improved
@@ -141,9 +176,11 @@ const Layout = () => {
                   <Link
                     key={item.name}
                     to={item.href}
+                    title={sidebarCollapsed ? item.name : undefined}
                     className={cn(
-                      'flex items-center px-6 py-3 mx-2 my-1 text-sm font-medium transition-all duration-300 ease-in-out',
+                      'flex items-center py-3 mx-2 my-1 text-sm font-medium transition-all duration-300 ease-in-out',
                       'min-h-[48px] relative overflow-hidden group rounded-lg',
+                      sidebarCollapsed ? 'px-3 justify-center' : 'px-6',
                       getFocusRing(),
                       isActive
                         ? 'bg-primary/10 text-primary shadow-sm'
@@ -157,20 +194,23 @@ const Layout = () => {
                     )} />
 
                     <Icon className={cn(
-                      "mr-3 h-5 w-5 transition-all duration-300 ease-in-out relative z-10",
+                      "h-5 w-5 transition-all duration-300 ease-in-out relative z-10 flex-shrink-0",
+                      !sidebarCollapsed && "mr-3",
                       isActive
                         ? "transform scale-110 text-primary"
                         : "group-hover:transform group-hover:scale-105 group-hover:text-primary"
                     )} />
-                    <span className={cn(
-                      "relative z-10 transition-all duration-300 ease-in-out",
-                      isActive ? "font-semibold" : "group-hover:font-medium"
-                    )}>
-                      {item.name}
-                    </span>
+                    {!sidebarCollapsed && (
+                      <span className={cn(
+                        "relative z-10 transition-all duration-300 ease-in-out",
+                        isActive ? "font-semibold" : "group-hover:font-medium"
+                      )}>
+                        {item.name}
+                      </span>
+                    )}
 
                     {/* Active indicator dot */}
-                    {isActive && (
+                    {isActive && !sidebarCollapsed && (
                       <div className="absolute right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />
                     )}
                   </Link>
@@ -181,9 +221,12 @@ const Layout = () => {
             {/* Desktop User Profile */}
             <div className="sticky bottom-0 w-full border-t bg-card mt-auto">
               {/* User Profile Section */}
-              <div className="p-3">
+              <div className={cn("p-3", sidebarCollapsed && "p-2")}>
                 <Link to="/settings" className="block">
-                  <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-all duration-200 ease-in-out group cursor-pointer">
+                  <div className={cn(
+                    "flex items-center p-2 rounded-lg hover:bg-accent/50 transition-all duration-200 ease-in-out group cursor-pointer",
+                    sidebarCollapsed ? "justify-center" : "space-x-3"
+                  )}>
                     <Avatar className="h-8 w-8 flex-shrink-0 transition-transform duration-200 ease-in-out group-hover:scale-110">
                       <AvatarImage
                         src={getAvatarUrl() || undefined}
@@ -193,32 +236,36 @@ const Layout = () => {
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">
-                        {profile?.display_name || user?.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {user?.email}
-                      </p>
-                    </div>
+                    {!sidebarCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">
+                          {profile?.display_name || user?.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </Link>
               </div>
               
               {/* Logout Button Section */}
-              <div className="px-3 pb-3">
+              <div className={cn("px-3 pb-3", sidebarCollapsed && "px-2 pb-2")}>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleLogoutClick}
                   className={cn(
-                    'w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ease-in-out',
+                    'w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ease-in-out',
+                    sidebarCollapsed ? 'justify-center px-2' : 'justify-start',
                     getFocusRing()
                   )}
                   aria-label="Sign out"
+                  title={sidebarCollapsed ? "Sign out" : undefined}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  <span className="text-sm">Sign out</span>
+                  <LogOut className={cn("h-4 w-4", !sidebarCollapsed && "mr-2")} />
+                  {!sidebarCollapsed && <span className="text-sm">Sign out</span>}
                 </Button>
               </div>
             </div>
