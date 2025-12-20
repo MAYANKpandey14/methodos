@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getFocusRing } from '@/lib/theme';
+import MethodOSLogo from '@/assets/MethodOS.png';
 
 const Layout = () => {
   const location = useLocation();
@@ -109,6 +110,7 @@ const Layout = () => {
         {!isMobile && (
           <div className="w-64 bg-card shadow-lg flex flex-col border-r relative">
             <div className="flex items-center px-6 py-4 border-b">
+              <img src={MethodOSLogo} alt="MethodOS Logo" className="h-6 w-6 md:h-7 md:w-7 mr-2" />
               <div className="font-bricolage text-xl font-bold text-foreground">MethodOS</div>
             </div>
 
@@ -232,6 +234,7 @@ const Layout = () => {
                 isOpen={mobileNavOpen}
                 onToggle={() => setMobileNavOpen(!mobileNavOpen)}
               />
+              <img src={MethodOSLogo} alt="MethodOS Logo" className="h-5 w-5 mr-1.5" />
               <div className="font-bricolage text-lg font-bold text-foreground">MethodOS</div>
               <div className="flex items-center space-x-2">
                 <Popover>
