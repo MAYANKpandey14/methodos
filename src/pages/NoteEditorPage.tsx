@@ -109,14 +109,26 @@ export default function NoteEditorPage() {
   };
 
   const handleSave = async () => {
+    // Prevent duplicate saves
+    if (isSaving) return;
+
     const { frontmatter, hashtags } = markdownService.parseFrontmatter(content);
 
-    // If user provided a title in frontmatter, it takes precedence for the note title
-    // Otherwise fallback to existing title state
+    // Determine final title - frontmatter takes precedence, fallback to state, then 'Untitled'
     const saveTitle = frontmatter.title || title?.trim() || 'Untitled';
     const savePinned = frontmatter.pinned !== undefined ? frontmatter.pinned : isPinned;
     const fmTags = (frontmatter.tags as string[]) || [];
     const derivedTags = Array.from(new Set([...fmTags, ...hashtags]));
+
+    // Validate: require at least some content or a meaningful title
+    if (!content.trim() && saveTitle === 'Untitled') {
+      toast({
+        title: "Cannot save empty note",
+        description: "Please add a title or some content before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Update local state if frontmatter overrides
     if (frontmatter.title && frontmatter.title !== title) setTitle(String(frontmatter.title));
@@ -125,7 +137,6 @@ export default function NoteEditorPage() {
     setIsSaving(true);
     try {
       if (isNewNote) {
-        // Create new note
         const newNote = await createNote.mutateAsync({
           title: String(saveTitle),
           content,
@@ -133,12 +144,15 @@ export default function NoteEditorPage() {
           tags: derivedTags,
         });
 
-        // CRITICAL FIX: Navigate to the new note's URL so we can continue editing it
-        // using 'replace: true' to avoid polluting browser history with the 'new' route
+        toast({
+          title: "Note created",
+          description: "Your note has been saved successfully.",
+        });
+
+        // Navigate to the new note's URL so we can continue editing it
         navigate(`/notes/${newNote.id}`, { replace: true });
 
       } else if (currentNote) {
-        // Update existing note
         await updateNote.mutateAsync({
           id: currentNote.id,
           title: String(saveTitle),
@@ -147,22 +161,19 @@ export default function NoteEditorPage() {
           tags: derivedTags,
         });
         setLastSaved(new Date());
-        // Toast is handled by hook for success/error, but we can add specific ones if needed
-        // For manual save, users often expect feedbck. 
-        // Our new hook shows success message by default for create/delete, 
-        // but let's make sure update shows one too if we want it to be explicit.
-        // Actually the hook config had "errorMessage" but no "successMessage" 
-        // for update because of autosave. Let's add explicit toast here for manual save.
         toast({
           title: "Note saved",
           description: "Your note has been saved successfully.",
         });
       }
-    } catch (error) {
-      // Error handling is delegated to the mutation hook mostly, 
-      // but we catch here to stop isSaving from hanging if needed
-      // (though finally block handles that)
-      console.error('Manual save failed:', error);
+    } catch (error: any) {
+      // Content remains on screen - we don't clear it
+      console.error('Save failed:', error);
+      toast({
+        title: "Save failed",
+        description: error?.message || "Failed to save your note. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
