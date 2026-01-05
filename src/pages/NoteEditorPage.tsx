@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Download, Printer, Eye, Edit, Split, Maximize, Minimize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { DEBOUNCE_TIMES } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EnhancedNoteEditorToolbar } from '@/components/notes/EnhancedNoteEditorToolbar';
 import { NoteEditorLayout } from '@/components/notes/NoteEditorLayout';
+import { NoteEditorHandle } from '@/components/notes/EnhancedNoteEditorTextarea';
 import { DocumentOutline } from '@/components/notes/DocumentOutline';
 import { FindReplacePanel } from '@/components/notes/FindReplacePanel';
 import { DocumentStats } from '@/components/notes/DocumentStats';
@@ -42,6 +43,7 @@ export default function NoteEditorPage() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isTypewriterMode, setIsTypewriterMode] = useState(false);
+  const editorRef = useRef<NoteEditorHandle>(null);
 
   const isMobile = useIsMobile();
 
@@ -200,98 +202,60 @@ export default function NoteEditorPage() {
   }, []);
 
   const formatSelection = useCallback((type: string) => {
-    // Get reference to the textarea through the layout component
-    const textarea = document.querySelector('textarea');
-    if (!textarea) return;
-
-    // Use the enhanced textarea's built-in formatting methods
-    const textareaEnhanced = textarea as any;
+    const editor = editorRef.current;
+    if (!editor) return;
 
     switch (type) {
       case 'bold':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('**', '**', 'bold text');
-        }
+        editor.insertMarkdown('**', '**', 'bold text');
         break;
       case 'italic':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('*', '*', 'italic text');
-        }
+        editor.insertMarkdown('*', '*', 'italic text');
         break;
       case 'underline':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('<u>', '</u>', 'underlined text');
-        }
+        editor.insertMarkdown('<u>', '</u>', 'underlined text');
         break;
       case 'strikethrough':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('~~', '~~', 'strikethrough text');
-        }
+        editor.insertMarkdown('~~', '~~', 'strikethrough text');
         break;
       case 'inline-code':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('`', '`', 'code');
-        }
+        editor.insertMarkdown('`', '`', 'code');
         break;
       case 'heading1':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('# ', '', 'Heading 1');
-        }
+        editor.insertMarkdown('# ', '', 'Heading 1');
         break;
       case 'heading2':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('## ', '', 'Heading 2');
-        }
+        editor.insertMarkdown('## ', '', 'Heading 2');
         break;
       case 'heading3':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('### ', '', 'Heading 3');
-        }
+        editor.insertMarkdown('### ', '', 'Heading 3');
         break;
       case 'unordered-list':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('- ', '', 'List item');
-        }
+        editor.insertMarkdown('- ', '', 'List item');
         break;
       case 'ordered-list':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('1. ', '', 'List item');
-        }
+        editor.insertMarkdown('1. ', '', 'List item');
         break;
       case 'task-list':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('- [ ] ', '', 'Task item');
-        }
+        editor.insertMarkdown('- [ ] ', '', 'Task item');
         break;
       case 'blockquote':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('> ', '', 'Quote text');
-        }
+        editor.insertMarkdown('> ', '', 'Quote text');
         break;
       case 'link':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('[', '](https://example.com)', 'link text');
-        }
+        editor.insertMarkdown('[', '](https://example.com)', 'link text');
         break;
       case 'image':
-        if (textareaEnhanced.insertMarkdown) {
-          textareaEnhanced.insertMarkdown('![', '](image-url)', 'alt text');
-        }
+        editor.insertMarkdown('![', '](image-url)', 'alt text');
         break;
       case 'table':
-        if (textareaEnhanced.insertText) {
-          textareaEnhanced.insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
-        }
+        editor.insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
         break;
       case 'code-block':
-        if (textareaEnhanced.insertText) {
-          textareaEnhanced.insertText('\n```javascript\n// Your code here\nconsole.log("Hello, World!");\n```\n');
-        }
+        editor.insertText('\n```javascript\n// Your code here\nconsole.log("Hello, World!");\n```\n');
         break;
       case 'horizontal-rule':
-        if (textareaEnhanced.insertText) {
-          textareaEnhanced.insertText('\n---\n');
-        }
+        editor.insertText('\n---\n');
         break;
       default:
         break;
@@ -427,6 +391,7 @@ export default function NoteEditorPage() {
           )}
           <div className="flex-1 overflow-hidden">
             <NoteEditorLayout
+              ref={editorRef}
               content={content}
               onContentChange={setContent}
               viewMode={viewMode}

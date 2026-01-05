@@ -1,9 +1,16 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SlashCommandMenu } from './SlashCommandMenu';
 import { TableControls } from './TableControls';
 import { getCaretCoordinates } from '@/utils/caretCoordinates';
 import { isCursorInTable, processTableAction } from '@/utils/tableUtils';
+
+export interface NoteEditorHandle {
+  insertMarkdown: (prefix: string, suffix: string, placeholder: string) => void;
+  insertText: (text: string) => void;
+  getSelectedText: () => string;
+  getSelection: () => { start: number; end: number };
+}
 
 interface EnhancedNoteEditorTextareaProps {
   content: string;
@@ -14,14 +21,14 @@ interface EnhancedNoteEditorTextareaProps {
   isTypewriterMode?: boolean;
 }
 
-export function EnhancedNoteEditorTextarea({
+export const EnhancedNoteEditorTextarea = forwardRef<NoteEditorHandle, EnhancedNoteEditorTextareaProps>(({
   content,
   onContentChange,
   onSelectionChange,
   onScroll,
   scrollSyncTarget,
   isTypewriterMode = false,
-}: EnhancedNoteEditorTextareaProps) {
+}, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showSlashMenu, setShowSlashMenu] = React.useState(false);
@@ -103,6 +110,7 @@ export function EnhancedNoteEditorTextarea({
   }, [content, onContentChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // ... Copy existing keyDown logic ...
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -273,6 +281,7 @@ export function EnhancedNoteEditorTextarea({
   }, [content, onContentChange]);
 
   const handleSlashCommandSelect = useCallback((command: string) => {
+    // ... Copy existing slash command logic ...
     const textarea = textareaRef.current;
     if (!textarea || slashCommandIndex === null) return;
 
@@ -393,21 +402,23 @@ export function EnhancedNoteEditorTextarea({
     }, 0);
   }, [content, onContentChange]);
 
-  // Expose methods for toolbar and external use
-  useEffect(() => {
-    if (textareaRef.current) {
-      (textareaRef.current as any).insertMarkdown = insertMarkdownAtSelection;
-      (textareaRef.current as any).insertText = insertText;
-      (textareaRef.current as any).getSelectedText = () => {
-        const { selectionStart, selectionEnd } = textareaRef.current!;
-        return content.slice(selectionStart, selectionEnd);
-      };
-      (textareaRef.current as any).getSelection = () => {
-        const { selectionStart, selectionEnd } = textareaRef.current!;
-        return { start: selectionStart, end: selectionEnd };
-      };
+  // Use useImperativeHandle instead of monkey patching
+  useImperativeHandle(ref, () => ({
+    insertMarkdown: insertMarkdownAtSelection,
+    insertText: insertText,
+    getSelectedText: () => {
+      const textarea = textareaRef.current;
+      if (!textarea) return '';
+      const { selectionStart, selectionEnd } = textarea;
+      return content.slice(selectionStart, selectionEnd);
+    },
+    getSelection: () => {
+      const textarea = textareaRef.current;
+      if (!textarea) return { start: 0, end: 0 };
+      const { selectionStart, selectionEnd } = textarea;
+      return { start: selectionStart, end: selectionEnd };
     }
-  }, [insertMarkdownAtSelection, insertText, content]);
+  }));
 
   return (
     <ScrollArea
@@ -450,4 +461,6 @@ export function EnhancedNoteEditorTextarea({
       </div>
     </ScrollArea>
   );
-}
+});
+
+EnhancedNoteEditorTextarea.displayName = 'EnhancedNoteEditorTextarea';

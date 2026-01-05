@@ -106,7 +106,7 @@ export const notesRepo = {
             isPinned: note.is_pinned,
             createdAt: new Date(note.created_at),
             updatedAt: new Date(note.updated_at),
-            tags: note.note_tags?.map((nt: any) => nt.tags?.name).filter(Boolean) || []
+            tags: note.note_tags?.map((nt: { tags: { name: string } | null }) => nt.tags?.name).filter((name): name is string => !!name) || []
         }));
     },
 

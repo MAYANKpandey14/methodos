@@ -1,10 +1,10 @@
 
-import { useMutation as useTanstackMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query';
+import { useMutation as useTanstackMutation, UseMutationOptions, useQueryClient, QueryKey } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface MutationConfig<TData, TError, TVariables, TContext>
     extends UseMutationOptions<TData, TError, TVariables, TContext> {
-    invalidateKeys?: any[][];
+    invalidateKeys?: QueryKey[];
     successMessage?: string;
     errorMessage?: string;
 }

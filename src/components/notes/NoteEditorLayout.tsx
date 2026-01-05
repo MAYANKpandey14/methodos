@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, forwardRef } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { EnhancedNoteEditorTextarea } from './EnhancedNoteEditorTextarea';
+import { EnhancedNoteEditorTextarea, NoteEditorHandle } from './EnhancedNoteEditorTextarea';
 import { MarkdownPreview } from './MarkdownPreview';
 
 interface NoteEditorLayoutProps {
@@ -13,7 +13,7 @@ interface NoteEditorLayoutProps {
   isTypewriterMode?: boolean;
 }
 
-export function NoteEditorLayout({
+export const NoteEditorLayout = forwardRef<NoteEditorHandle, NoteEditorLayoutProps>(({
   content,
   onContentChange,
   viewMode,
@@ -21,7 +21,7 @@ export function NoteEditorLayout({
   onSelectionChange,
   onWikiLinkClick,
   isTypewriterMode
-}: NoteEditorLayoutProps) {
+}, ref) => {
   const [editorScrollTop, setEditorScrollTop] = useState(0);
   const [previewScrollTop, setPreviewScrollTop] = useState(0);
   const [enableScrollSync, setEnableScrollSync] = useState(true);
@@ -45,6 +45,7 @@ export function NoteEditorLayout({
     return (
       <div className="h-full">
         <EnhancedNoteEditorTextarea
+          ref={ref}
           content={content}
           onContentChange={onContentChange}
           onSelectionChange={onSelectionChange}
@@ -71,6 +72,7 @@ export function NoteEditorLayout({
     <ResizablePanelGroup direction="horizontal" className="h-full">
       <ResizablePanel defaultSize={50} minSize={30}>
         <EnhancedNoteEditorTextarea
+          ref={ref}
           content={content}
           onContentChange={onContentChange}
           onSelectionChange={onSelectionChange}
@@ -92,4 +94,6 @@ export function NoteEditorLayout({
       </ResizablePanel>
     </ResizablePanelGroup>
   );
-}
+});
+
+NoteEditorLayout.displayName = 'NoteEditorLayout';

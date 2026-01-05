@@ -1,6 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
 
 interface MathRendererProps {
   math: string;
@@ -14,16 +12,23 @@ export function MathRenderer({ math, displayMode = false, className }: MathRende
   useEffect(() => {
     if (containerRef.current && math) {
       try {
-        katex.render(math, containerRef.current, {
-          displayMode,
-          throwOnError: false,
-          errorColor: '#cc0000',
-          macros: {
-            "\\RR": "\\mathbb{R}",
-            "\\NN": "\\mathbb{N}",
-            "\\ZZ": "\\mathbb{Z}",
-            "\\QQ": "\\mathbb{Q}",
-            "\\CC": "\\mathbb{C}",
+        Promise.all([
+          import('katex'),
+          import('katex/dist/katex.min.css')
+        ]).then(([{ default: katex }]) => {
+          if (containerRef.current) {
+            katex.render(math, containerRef.current, {
+              displayMode,
+              throwOnError: false,
+              errorColor: '#cc0000',
+              macros: {
+                "\\RR": "\\mathbb{R}",
+                "\\NN": "\\mathbb{N}",
+                "\\ZZ": "\\mathbb{Z}",
+                "\\QQ": "\\mathbb{Q}",
+                "\\CC": "\\mathbb{C}",
+              }
+            });
           }
         });
       } catch (error) {
@@ -59,10 +64,15 @@ export function renderMathInElement(element: HTMLElement) {
   displayMathElements.forEach((el) => {
     const math = decodeURIComponent(el.getAttribute('data-math') || '');
     try {
-      katex.render(math, el as HTMLElement, {
-        displayMode: true,
-        throwOnError: false,
-        errorColor: '#cc0000',
+      Promise.all([
+        import('katex'),
+        import('katex/dist/katex.min.css')
+      ]).then(([{ default: katex }]) => {
+        katex.render(math, el as HTMLElement, {
+          displayMode: true,
+          throwOnError: false,
+          errorColor: '#cc0000',
+        });
       });
     } catch (error) {
       (el as HTMLElement).innerHTML = `<span style="color: #cc0000;">Math Error: ${math}</span>`;
@@ -74,10 +84,15 @@ export function renderMathInElement(element: HTMLElement) {
   inlineMathElements.forEach((el) => {
     const math = decodeURIComponent(el.getAttribute('data-math') || '');
     try {
-      katex.render(math, el as HTMLElement, {
-        displayMode: false,
-        throwOnError: false,
-        errorColor: '#cc0000',
+      Promise.all([
+        import('katex'),
+        import('katex/dist/katex.min.css')
+      ]).then(([{ default: katex }]) => {
+        katex.render(math, el as HTMLElement, {
+          displayMode: false,
+          throwOnError: false,
+          errorColor: '#cc0000',
+        });
       });
     } catch (error) {
       (el as HTMLElement).innerHTML = `<span style="color: #cc0000;">Math Error: ${math}</span>`;

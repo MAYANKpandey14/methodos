@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { markdownService } from '@/lib/markdown';
 
 export interface ExportOptions {
@@ -13,9 +11,11 @@ export interface ExportOptions {
 export class ExportService {
   static async exportToPDF(content: string, options: ExportOptions): Promise<void> {
     try {
+      const { default: jsPDF } = await import('jspdf');
+
       // Render markdown to HTML first
       const renderedContent = await markdownService.render(content);
-      
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -45,7 +45,7 @@ export class ExportService {
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        
+
         // Check if we need a new page
         if (yPosition > pageHeight - margin - 10) {
           pdf.addPage();
@@ -127,7 +127,7 @@ export class ExportService {
             .replace(/~~(.*?)~~/g, '$1')       // Strikethrough
             .replace(/`(.*?)`/g, '$1')         // Inline code
             .replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Links
-          
+
           const splitLines = pdf.splitTextToSize(processedText, contentWidth);
           pdf.text(splitLines, margin, yPosition);
           yPosition += splitLines.length * 5 + 2;
@@ -148,7 +148,9 @@ export class ExportService {
 
   static async exportToDOCX(content: string, options: ExportOptions): Promise<void> {
     try {
-      const paragraphs: any[] = [];
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+
+      const paragraphs: InstanceType<typeof Paragraph>[] = [];
 
       // Add title if provided
       if (options.includeTitle && options.title) {
@@ -169,7 +171,7 @@ export class ExportService {
 
       // Process content line by line
       const lines = content.split('\n');
-      
+
       for (const line of lines) {
         if (line.startsWith('# ')) {
           paragraphs.push(
@@ -215,11 +217,11 @@ export class ExportService {
         } else if (line.trim()) {
           // Process inline formatting
           let processedText = line;
-          const textRuns: TextRun[] = [];
-          
+          const textRuns: InstanceType<typeof TextRun>[] = [];
+
           // Simple bold/italic processing
           const parts = processedText.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/);
-          
+
           for (const part of parts) {
             if (part.startsWith('**') && part.endsWith('**')) {
               textRuns.push(new TextRun({ text: part.slice(2, -2), bold: true }));
@@ -231,7 +233,7 @@ export class ExportService {
               textRuns.push(new TextRun({ text: part }));
             }
           }
-          
+
           if (textRuns.length > 0) {
             paragraphs.push(
               new Paragraph({
@@ -274,7 +276,7 @@ export class ExportService {
   static async print(content: string, title?: string): Promise<void> {
     try {
       const renderedContent = await markdownService.render(content);
-      
+
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         throw new Error('Could not open print window. Please allow popups for this site.');
@@ -401,17 +403,17 @@ export class ExportService {
 
       printWindow.document.write(printContent);
       printWindow.document.close();
-      
+
       // Wait for content to load, then trigger print
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.print();
-          
+
           // Only close after print dialog is handled
           printWindow.onafterprint = () => {
             printWindow.close();
           };
-          
+
           // Fallback: close after a delay if onafterprint doesn't fire
           setTimeout(() => {
             if (!printWindow.closed) {
@@ -429,7 +431,7 @@ export class ExportService {
   static async exportToMarkdown(content: string, options: ExportOptions): Promise<void> {
     try {
       let markdownContent = content;
-      
+
       // Add title if requested
       if (options.includeTitle && options.title) {
         markdownContent = `# ${options.title}\n\n${content}`;

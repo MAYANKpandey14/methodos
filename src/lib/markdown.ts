@@ -1,20 +1,11 @@
 import { marked, Marked, Renderer } from 'marked';
 import DOMPurify from 'dompurify';
-import Prism from 'prismjs';
-import katex from 'katex';
-import mermaid from 'mermaid';
 import { logger } from './logger';
-
-// Import additional Prism language components
-import 'prismjs/components/prism-typescript';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-css';
-import 'prismjs/components/prism-json';
-import 'prismjs/components/prism-bash';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-sql';
-import 'prismjs/components/prism-yaml';
 import { CACHE_CONFIG } from './constants';
+// Types
+import type { Mermaid } from 'mermaid';
+import type * as PrismType from 'prismjs';
+import type KatexType from 'katex';
 
 export interface FrontmatterData {
   title?: string;
@@ -47,6 +38,11 @@ class MarkdownService {
   private cache: Map<string, MarkdownCache> = new Map();
   private marked: Marked;
   private options: Required<MarkdownOptions>;
+  // Lazy loaded dependencies
+  private mermaid?: Mermaid;
+  private katex?: typeof KatexType;
+  private prism?: typeof PrismType;
+  private dependenciesLoaded = false;
 
   constructor(options: MarkdownOptions = {}) {
     this.options = {
@@ -58,16 +54,49 @@ class MarkdownService {
       ...options,
     };
 
-    // Initialize mermaid
-    if (this.options.enableDiagrams) {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'strict',
-      });
-    }
-
     this.marked = this.createMarkedInstance();
+  }
+
+  private async loadDependencies(): Promise<void> {
+    if (this.dependenciesLoaded) return;
+
+    try {
+      const results = await Promise.all([
+        this.options.enableDiagrams ? import('mermaid') : Promise.resolve(null),
+        this.options.enableMath ? import('katex') : Promise.resolve(null),
+        this.options.enableSyntaxHighlighting ? import('prismjs') : Promise.resolve(null),
+        // Load languages side effects
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-typescript') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-javascript') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-css') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-json') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-bash') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-python') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-sql') : Promise.resolve(),
+        this.options.enableSyntaxHighlighting ? import('prismjs/components/prism-yaml') : Promise.resolve(),
+      ]);
+
+      if (results[0]) {
+        this.mermaid = results[0].default;
+        this.mermaid.initialize({
+          startOnLoad: false,
+          theme: 'default',
+          securityLevel: 'strict',
+        });
+      }
+
+      if (results[1]) {
+        this.katex = results[1].default;
+      }
+
+      if (results[2]) {
+        this.prism = results[2].default;
+      }
+
+      this.dependenciesLoaded = true;
+    } catch (error) {
+      logger.markdownError('Failed to load markdown dependencies', error);
+    }
   }
 
   private createMarkedInstance(): Marked {
@@ -98,9 +127,9 @@ class MarkdownService {
       }
 
       // Syntax highlighting for code
-      if (Prism.languages[language]) {
+      if (this.prism && this.prism.languages[language]) {
         try {
-          const highlighted = Prism.highlight(code, Prism.languages[language], language);
+          const highlighted = this.prism.highlight(code, this.prism.languages[language], language);
           return `<pre class="bg-muted text-foreground p-4 rounded-lg overflow-x-auto language-${language}"><code class="language-${language}">${highlighted}</code></pre>`;
         } catch (error) {
           logger.markdownWarn(`Syntax highlighting failed for language: ${language}`, error);
@@ -234,7 +263,8 @@ class MarkdownService {
     // Parse inline math: $...$
     content = content.replace(/\$([^$\n]+)\$/g, (match, math) => {
       try {
-        const rendered = katex.renderToString(math.trim(), {
+        if (!this.katex) return match;
+        const rendered = this.katex.renderToString(math.trim(), {
           throwOnError: false,
           displayMode: false
         });
@@ -248,7 +278,8 @@ class MarkdownService {
     // Parse block math: $$...$$
     content = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
       try {
-        const rendered = katex.renderToString(math.trim(), {
+        if (!this.katex) return match;
+        const rendered = this.katex.renderToString(math.trim(), {
           throwOnError: false,
           displayMode: true
         });
@@ -340,7 +371,11 @@ class MarkdownService {
       if (!code) continue;
 
       try {
-        const { svg } = await mermaid.render(element.id, code);
+        if (!this.mermaid) {
+          element.innerHTML = `<pre class="bg-muted text-foreground p-4 rounded-lg">${this.escapeHtml(code)}</pre>`;
+          continue;
+        }
+        const { svg } = await this.mermaid.render(element.id, code);
         element.innerHTML = svg;
         element.removeAttribute('data-mermaid');
       } catch (error) {
@@ -406,6 +441,9 @@ class MarkdownService {
     }
 
     try {
+      // Load dependencies
+      await this.loadDependencies();
+
       // Parse math expressions first
       let parsedContent = this.parseMathExpressions(cleanContent);
 
@@ -413,10 +451,12 @@ class MarkdownService {
       parsedContent = this.parseWikiLinks(parsedContent);
 
       // Render markdown
-      const rawHtml = this.marked.parse(parsedContent) as string;
+      const rawHtml = this.marked.parse(parsedContent);
+      // Wait for promise if marked returns promise (it shouldn't here as async is false by default but let's be safe if config changes)
+      // Actually marked.parse is sync unless async:true is passed.
 
       // Sanitize HTML
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml as string, {
         ADD_TAGS: ['mermaid'],
         ADD_ATTR: ['data-mermaid', 'id', 'data-wikilink'],
       });
