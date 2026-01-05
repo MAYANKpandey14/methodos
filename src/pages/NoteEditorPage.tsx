@@ -49,7 +49,8 @@ export default function NoteEditorPage() {
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
 
-  const isNewNote = id === 'new';
+  // Check if this is a new note: either no ID param (route /notes/new) or id === 'new'
+  const isNewNote = !id || id === 'new';
   const currentNote = isNewNote ? null : notes.find(note => note.id === id);
 
   // Debounced auto-save for existing notes
