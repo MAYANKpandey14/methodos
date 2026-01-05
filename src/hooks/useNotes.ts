@@ -40,8 +40,7 @@ export const useUpdateNote = () => {
     },
     {
       invalidateKeys: [['notes']],
-      // No success message for updates usually as they might be auto-saves, 
-      // but can be added if manual save. We can override in usage or keep silent for auto-save.
+      successMessage: "Note saved successfully",
       errorMessage: "Failed to update note"
     }
   );
