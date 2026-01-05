@@ -19,6 +19,7 @@ import { ExportService } from '@/services/exportService';
 import { TagsList } from '@/components/notes/TagsList';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 type ViewMode = 'edit' | 'preview' | 'split';
 
@@ -112,6 +113,18 @@ export default function NoteEditorPage() {
     // Prevent duplicate saves
     if (isSaving) return;
 
+    // Check authentication first
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save notes.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
     const { frontmatter, hashtags } = markdownService.parseFrontmatter(content);
 
     // Determine final title - frontmatter takes precedence, fallback to state, then 'Untitled'
@@ -143,6 +156,11 @@ export default function NoteEditorPage() {
           isPinned: Boolean(savePinned),
           tags: derivedTags,
         });
+
+        // Ensure we have the note ID before navigating
+        if (!newNote?.id) {
+          throw new Error('Failed to create note - no ID returned');
+        }
 
         toast({
           title: "Note created",
