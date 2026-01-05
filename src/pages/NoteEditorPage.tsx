@@ -163,13 +163,9 @@ export default function NoteEditorPage() {
           throw new Error('Failed to create note - no ID returned');
         }
 
-        toast({
-          title: "Note created",
-          description: "Your note has been saved successfully.",
-        });
-
-        // Navigate to the new note's URL so we can continue editing it
-        navigate(`/notes/${newNote.id}`, { replace: true });
+        // Navigate to the new note's edit URL so we can continue editing it
+        // Note: Toast is handled by useMutation hook
+        navigate(`/notes/edit/${newNote.id}`, { replace: true });
 
       } else if (currentNote) {
         await updateNote.mutateAsync({
@@ -180,10 +176,7 @@ export default function NoteEditorPage() {
           tags: derivedTags,
         });
         setLastSaved(new Date());
-        toast({
-          title: "Note saved",
-          description: "Your note has been saved successfully.",
-        });
+        // Note: Success toast is handled by useMutation hook
       }
     } catch (error: any) {
       // Content remains on screen - we don't clear it
@@ -309,7 +302,7 @@ export default function NoteEditorPage() {
     const targetNote = notes.find(n => n.title.toLowerCase() === noteTitle.toLowerCase());
 
     if (targetNote) {
-      navigate(`/notes/${targetNote.id}`);
+      navigate(`/notes/edit/${targetNote.id}`);
     } else {
       navigate(`/notes/new?title=${encodeURIComponent(noteTitle)}`);
     }
